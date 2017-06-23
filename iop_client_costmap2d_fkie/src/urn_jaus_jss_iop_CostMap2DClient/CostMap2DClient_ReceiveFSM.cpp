@@ -21,7 +21,7 @@ along with this program; or you can read the full license at
 /** \author Alexander Tiderko */
 
 
-#include "urn_jaus_jss_iop_CostMap2DClient_1_0/CostMap2DClient_ReceiveFSM.h"
+#include "urn_jaus_jss_iop_CostMap2DClient/CostMap2DClient_ReceiveFSM.h"
 
 #include <tf/transform_datatypes.h>
 #include <iop_builder_fkie/timestamp.h>
@@ -30,12 +30,12 @@ along with this program; or you can read the full license at
 
 using namespace JTS;
 
-namespace urn_jaus_jss_iop_CostMap2DClient_1_0
+namespace urn_jaus_jss_iop_CostMap2DClient
 {
 
 
 
-CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transport_1_0::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_EventsClient_1_0::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_AccessControlClient_1_0::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM)
+CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM)
 {
 
 	/*
@@ -90,10 +90,14 @@ void CostMap2DClient_ReceiveFSM::pAccessStateHandler(JausAddress &address, unsig
 	}
 }
 
-void CostMap2DClient_ReceiveFSM::pHandleEventReportMap(Receive::Body::ReceiveRec &transport_data, urn_jaus_jss_core_EventsClient_1_0::Event &msg)
+void CostMap2DClient_ReceiveFSM::pHandleEventReportMap(JausAddress &sender, unsigned int reportlen, const unsigned char* reportdata)
 {
 	ReportCostMap2D report;
-	report.decode(msg.getBody()->getEventRec()->getReportMessage()->getData());
+	report.decode(reportdata);
+	Receive::Body::ReceiveRec transport_data;
+	transport_data.setSrcSubsystemID(sender.getSubsystemID());
+	transport_data.setSrcNodeID(sender.getNodeID());
+	transport_data.setSrcComponentID(sender.getComponentID());
 	handleReportCostMap2DAction(report, transport_data);
 }
 

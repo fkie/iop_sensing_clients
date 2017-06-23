@@ -1,5 +1,5 @@
 <library path="libiop_client_costmap2d_fkie">
-  <class name="CostMap2DClient_1_0" type="iop::CostMap2DClientPlugin_1_0" base_class_type="iop::PluginInterface">
+  <class name="CostMap2DClient" type="iop::CostMap2DClientPlugin" base_class_type="iop::PluginInterface">
     <description>
       IOP CostMap2D client Service Plugin, e.g. for using in OCU
     </description>

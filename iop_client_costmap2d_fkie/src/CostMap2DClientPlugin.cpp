@@ -21,16 +21,16 @@ along with this program; or you can read the full license at
 /** \author Alexander Tiderko */
 
 #include <pluginlib/class_list_macros.h>
-#include <CostMap2DClientPlugin_1_0.h>
+#include <CostMap2DClientPlugin.h>
 
 using namespace iop;
-using namespace urn_jaus_jss_iop_CostMap2DClient_1_0 ;
-using namespace urn_jaus_jss_core_AccessControlClient_1_0;
-using namespace urn_jaus_jss_core_EventsClient_1_0;
-using namespace urn_jaus_jss_core_Transport_1_0;
+using namespace urn_jaus_jss_iop_CostMap2DClient ;
+using namespace urn_jaus_jss_core_AccessControlClient;
+using namespace urn_jaus_jss_core_EventsClient;
+using namespace urn_jaus_jss_core_Transport;
 
 
-CostMap2DClientPlugin_1_0::CostMap2DClientPlugin_1_0()
+CostMap2DClientPlugin::CostMap2DClientPlugin()
 {
 	p_my_service = NULL;
 	p_base_service = NULL;
@@ -38,12 +38,12 @@ CostMap2DClientPlugin_1_0::CostMap2DClientPlugin_1_0()
 	p_transport_service = NULL;
 }
 
-JTS::Service* CostMap2DClientPlugin_1_0::get_service()
+JTS::Service* CostMap2DClientPlugin::get_service()
 {
 	return p_my_service;
 }
 
-void CostMap2DClientPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
+void CostMap2DClientPlugin::create_service(JTS::JausRouter* jaus_router)
 {
 	p_base_service = static_cast<AccessControlClientService *>(get_base_service());
 	p_events_service = static_cast<EventsClientService *>(get_base_service(2));
@@ -51,4 +51,4 @@ void CostMap2DClientPlugin_1_0::create_service(JTS::JausRouter* jaus_router)
 	p_my_service = new CostMap2DClientService(jaus_router, p_transport_service, p_events_service, p_base_service);
 }
 
-PLUGINLIB_EXPORT_CLASS(iop::CostMap2DClientPlugin_1_0, iop::PluginInterface)
+PLUGINLIB_EXPORT_CLASS(iop::CostMap2DClientPlugin, iop::PluginInterface)

@@ -21,32 +21,32 @@ along with this program; or you can read the full license at
 /** \author Alexander Tiderko */
 
 
-#ifndef COSTMAP2DCLIENTPLUGIN_1_0_H
-#define COSTMAP2DCLIENTPLUGIN_1_0_H
+#ifndef COSTMAP2DCLIENTPLUGIN_H
+#define COSTMAP2DCLIENTPLUGIN_H
 
-#include "urn_jaus_jss_iop_CostMap2DClient_1_0/CostMap2DClientService.h"
-#include "urn_jaus_jss_core_AccessControlClient_1_0/AccessControlClientService.h"
-#include "urn_jaus_jss_core_EventsClient_1_0/EventsClientService.h"
-#include "urn_jaus_jss_core_Transport_1_0/TransportService.h"
+#include "urn_jaus_jss_iop_CostMap2DClient/CostMap2DClientService.h"
+#include "urn_jaus_jss_core_AccessControlClient/AccessControlClientService.h"
+#include "urn_jaus_jss_core_EventsClient/EventsClientService.h"
+#include "urn_jaus_jss_core_Transport/TransportService.h"
 
 #include <iop_component_fkie/iop_plugin_interface.h>
 
 namespace iop
 {
 
-class DllExport CostMap2DClientPlugin_1_0 : public PluginInterface
+class DllExport CostMap2DClientPlugin : public PluginInterface
 {
 public:
-	CostMap2DClientPlugin_1_0();
+	CostMap2DClientPlugin();
 
 	JTS::Service* get_service();
 	void create_service(JTS::JausRouter* jaus_router);
 
 protected:
-	urn_jaus_jss_iop_CostMap2DClient_1_0::CostMap2DClientService *p_my_service;
-	urn_jaus_jss_core_AccessControlClient_1_0::AccessControlClientService *p_base_service;
-	urn_jaus_jss_core_EventsClient_1_0::EventsClientService *p_events_service;
-	urn_jaus_jss_core_Transport_1_0::TransportService *p_transport_service;
+	urn_jaus_jss_iop_CostMap2DClient::CostMap2DClientService *p_my_service;
+	urn_jaus_jss_core_AccessControlClient::AccessControlClientService *p_base_service;
+	urn_jaus_jss_core_EventsClient::EventsClientService *p_events_service;
+	urn_jaus_jss_core_Transport::TransportService *p_transport_service;
 
 };
 
