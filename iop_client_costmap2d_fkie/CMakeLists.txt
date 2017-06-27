@@ -28,7 +28,6 @@ iop_init(COMPONENT_ID 171)
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-    INCLUDE_DIRS include/${PROJECT_NAME}
     LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS
         geometry_msgs
@@ -68,7 +67,6 @@ iop_code_generator(
 
 include_directories(
     ${catkin_INCLUDE_DIRS}
-    include/${PROJECT_NAME}
 )
 add_library(${PROJECT_NAME}
             src/CostMap2DClientPlugin.cpp
@@ -86,12 +84,6 @@ target_link_libraries(${PROJECT_NAME}
 
 # all install targets should use catkin DESTINATION variables
 # See http://ros.org/doc/api/catkin/html/adv_user_guide/variables.html
-
-install(
-  DIRECTORY include/${PROJECT_NAME} DESTINATION ${CATKIN_GLOBAL_INCLUDE_DESTINATION}
-  PATTERN "*.old" EXCLUDE
-  PATTERN "*.gen" EXCLUDE
-)
 
 # Mark executables and/or libraries for installation
 install(TARGETS ${PROJECT_NAME}
