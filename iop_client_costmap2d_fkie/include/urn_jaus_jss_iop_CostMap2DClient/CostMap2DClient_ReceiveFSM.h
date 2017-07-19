@@ -31,8 +31,8 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_iop_CostMap2DClient/Messages/MessageSet.h"
 #include "urn_jaus_jss_iop_CostMap2DClient/InternalEvents/InternalEventsSet.h"
 
-typedef JTS::Receive Receive;
-typedef JTS::Send Send;
+#include "InternalEvents/Receive.h"
+#include "InternalEvents/Send.h"
 
 #include "urn_jaus_jss_core_Transport/Transport_ReceiveFSM.h"
 #include "urn_jaus_jss_core_EventsClient/EventsClient_ReceiveFSM.h"
@@ -43,14 +43,14 @@ typedef JTS::Send Send;
 #include <tf2_ros/transform_broadcaster.h>
 #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/OccupancyGrid.h>
-#include <iop_ocu_control_layerlib_fkie/OcuControlLayerSlave.h>
+#include <iop_ocu_slavelib_fkie/SlaveHandlerInterface.h>
 
 #include "CostMap2DClient_ReceiveFSM_sm.h"
 
 namespace urn_jaus_jss_iop_CostMap2DClient
 {
 
-class DllExport CostMap2DClient_ReceiveFSM : public JTS::StateMachine
+class DllExport CostMap2DClient_ReceiveFSM : public JTS::StateMachine, public iop::ocu::SlaveHandlerInterface
 {
 public:
 	CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM);
@@ -67,7 +67,10 @@ public:
 
 	/// Guard Methods
 
-
+	/// SlaveHandlerInterface Methods
+	void control_allowed(std::string service_uri, JausAddress component, unsigned char authority);
+	void enable_monitoring_only(std::string service_uri, JausAddress component);
+	void access_deactivated(std::string service_uri, JausAddress component);
 
 	CostMap2DClient_ReceiveFSMContext *context;
 
@@ -86,10 +89,9 @@ protected:
 	tf2_ros::TransformBroadcaster p_tf_broadcaster;
 	ros::Publisher p_pub_costmap;
 
-	OcuControlLayerSlave p_ocu_control_layer_slave;
+	JausAddress p_control_addr;
 	urn_jaus_jss_iop_CostMap2DClient::QueryCostMap2D p_query_costmap2d_msg;
 
-	void pAccessStateHandler(JausAddress &address, unsigned char code);
 	void pHandleEventReportMap(JausAddress &sender, unsigned int reportlen, const unsigned char* reportdata);
 
 };
