@@ -108,7 +108,7 @@ void CostMap2DClient_ReceiveFSM::create_events(std::string service_uri, JausAddr
 	} else {
 		ROS_INFO_NAMED("CostMap2DClient", "create EVENT to get costmap2D from %d.%d.%d",
 				component.getSubsystemID(), component.getNodeID(), component.getComponentID());
-		pEventsClient_ReceiveFSM->create_event(&CostMap2DClient_ReceiveFSM::pHandleEventReportMap, this, component, p_query_costmap2d_msg, 0, 1);
+		pEventsClient_ReceiveFSM->create_event(*this, component, p_query_costmap2d_msg, 0, 1);
 	}
 }
 
@@ -119,7 +119,7 @@ void CostMap2DClient_ReceiveFSM::cancel_events(std::string service_uri, JausAddr
 	} else {
 		ROS_INFO_NAMED("CostMap2DClient", "cancel EVENT for costmap2D by %d.%d.%d",
 				component.getSubsystemID(), component.getNodeID(), component.getComponentID());
-		pEventsClient_ReceiveFSM->cancel_event(component, p_query_costmap2d_msg);
+		pEventsClient_ReceiveFSM->cancel_event(*this, component, p_query_costmap2d_msg);
 	}
 }
 
@@ -130,7 +130,7 @@ void CostMap2DClient_ReceiveFSM::pQueryCallback(const ros::TimerEvent& event)
 	}
 }
 
-void CostMap2DClient_ReceiveFSM::pHandleEventReportMap(JausAddress &sender, unsigned int reportlen, const unsigned char* reportdata)
+void CostMap2DClient_ReceiveFSM::event(JausAddress sender, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata)
 {
 	ReportCostMap2D report;
 	report.decode(reportdata);

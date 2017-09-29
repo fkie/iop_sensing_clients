@@ -44,13 +44,14 @@ along with this program; or you can read the full license at
 #include <geometry_msgs/TransformStamped.h>
 #include <nav_msgs/OccupancyGrid.h>
 #include <iop_ocu_slavelib_fkie/SlaveHandlerInterface.h>
+#include <iop_events_fkie/EventHandlerInterface.h>
 
 #include "CostMap2DClient_ReceiveFSM_sm.h"
 
 namespace urn_jaus_jss_iop_CostMap2DClient
 {
 
-class DllExport CostMap2DClient_ReceiveFSM : public JTS::StateMachine, public iop::ocu::SlaveHandlerInterface
+class DllExport CostMap2DClient_ReceiveFSM : public JTS::StateMachine, public iop::ocu::SlaveHandlerInterface, public iop::EventHandlerInterface
 {
 public:
 	CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM);
@@ -66,6 +67,9 @@ public:
 
 
 	/// Guard Methods
+
+	/// EventHandlerInterface Methods
+	void event(JausAddress reporter, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata);
 
 	/// SlaveHandlerInterface Methods
 	void control_allowed(std::string service_uri, JausAddress component, unsigned char authority);
@@ -96,7 +100,6 @@ protected:
 	urn_jaus_jss_iop_CostMap2DClient::QueryCostMap2D p_query_costmap2d_msg;
 	bool p_has_access;
 
-	void pHandleEventReportMap(JausAddress &sender, unsigned int reportlen, const unsigned char* reportdata);
 	void pQueryCallback(const ros::TimerEvent& event);
 
 };
