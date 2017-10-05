@@ -26,6 +26,7 @@ along with this program; or you can read the full license at
 #include <tf/transform_datatypes.h>
 #include <iop_builder_fkie/timestamp.h>
 #include <iop_ocu_slavelib_fkie/Slave.h>
+#include <iop_component_fkie/iop_config.h>
 
 
 using namespace JTS;
@@ -51,7 +52,6 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	this->pAccessControlClient_ReceiveFSM = pAccessControlClient_ReceiveFSM;
 	p_tf_frame_costmap = "costmap";
 	p_tf_frame_odom = "odom";
-	p_pnh = ros::NodeHandle("~");
 	p_has_access = false;
 }
 
@@ -68,12 +68,10 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 	pAccessControlClient_ReceiveFSM->registerNotification("Receiving", ieHandler, "InternalStateChange_To_CostMap2DClient_ReceiveFSM_Receiving_Ready", "AccessControlClient_ReceiveFSM");
 	registerNotification("Receiving_Ready", pAccessControlClient_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControlClient_ReceiveFSM_Receiving_Ready", "CostMap2DClient_ReceiveFSM");
 	registerNotification("Receiving", pAccessControlClient_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControlClient_ReceiveFSM_Receiving", "CostMap2DClient_ReceiveFSM");
-
-	p_pnh.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
-	ROS_INFO("  tf_frame_odom: %s", p_tf_frame_odom.c_str());
-	p_pnh.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
-	ROS_INFO("  tf_frame_costmap: %s", p_tf_frame_costmap.c_str());
-	p_pub_costmap = p_nh.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
+	iop::Config cfg("~CostMap2DClient");
+	cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
+	cfg.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
+	p_pub_costmap = cfg.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
 	slave.add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 0);
 }

@@ -92,7 +92,6 @@ protected:
 
 	ros::NodeHandle p_nh;
 	ros::Timer p_query_timer;
-	ros::NodeHandle p_pnh;
 	tf2_ros::TransformBroadcaster p_tf_broadcaster;
 	ros::Publisher p_pub_costmap;
 
