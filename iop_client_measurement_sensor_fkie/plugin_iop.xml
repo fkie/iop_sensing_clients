@@ -1,0 +1,10 @@
+<library path="libiop_client_measurement_sensor_fkie">
+  <class name="MeasurementSensorClient" type="iop::MeasurementSensorClientPlugin" base_class_type="iop::PluginInterface">
+    <description>
+      MeasurementSensor client Service Plugin, used e.g. by OCU
+    </description>
+    <iop_service name="MeasurementSensorClient" id="urn:jaus:jss:iop:MeasurementSensorClient" version="1.0">
+      <inherits_from id="urn:jaus:jss:core:EventsClient" min_version="1.1"/>
+    </iop_service>
+  </class>
+</library>
