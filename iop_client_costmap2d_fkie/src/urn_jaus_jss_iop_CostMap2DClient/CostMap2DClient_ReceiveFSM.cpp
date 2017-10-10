@@ -53,6 +53,7 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	p_tf_frame_costmap = "costmap";
 	p_tf_frame_odom = "odom";
 	p_has_access = false;
+	p_hz = 1.0;
 }
 
 
@@ -71,6 +72,7 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 	iop::Config cfg("~CostMap2DClient");
 	cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
 	cfg.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
+	cfg.param("hz", p_hz, p_hz, false, false);
 	p_pub_costmap = cfg.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
 	slave.add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 0);
@@ -100,13 +102,15 @@ void CostMap2DClient_ReceiveFSM::access_deactivated(std::string service_uri, Jau
 void CostMap2DClient_ReceiveFSM::create_events(std::string service_uri, JausAddress component, bool by_query)
 {
 	if (by_query) {
-		ROS_INFO_NAMED("CostMap2DClient", "create QUERY timer to get costmap2D from %d.%d.%d",
-				component.getSubsystemID(), component.getNodeID(), component.getComponentID());
-		p_query_timer = p_nh.createTimer(ros::Duration(3), &CostMap2DClient_ReceiveFSM::pQueryCallback, this);
+		if (p_hz > 0) {
+			ROS_INFO_NAMED("CostMap2DClient", "create QUERY timer to get costmap2D from %s", component.str().c_str());
+			p_query_timer = p_nh.createTimer(ros::Duration(1.0 / p_hz), &CostMap2DClient_ReceiveFSM::pQueryCallback, this);
+		} else {
+			ROS_WARN_NAMED("CostMap2DClient", "invalid hz %f.2f for QUERY timer to get costmap2D from %s", p_hz, component.str().c_str());
+		}
 	} else {
-		ROS_INFO_NAMED("CostMap2DClient", "create EVENT to get costmap2D from %d.%d.%d",
-				component.getSubsystemID(), component.getNodeID(), component.getComponentID());
-		pEventsClient_ReceiveFSM->create_event(*this, component, p_query_costmap2d_msg, 0, 1);
+		ROS_INFO_NAMED("CostMap2DClient", "create EVENT to get costmap2D from %s", component.str().c_str());
+		pEventsClient_ReceiveFSM->create_event(*this, component, p_query_costmap2d_msg, p_hz);
 	}
 }
 
@@ -115,8 +119,7 @@ void CostMap2DClient_ReceiveFSM::cancel_events(std::string service_uri, JausAddr
 	if (by_query) {
 		p_query_timer.stop();
 	} else {
-		ROS_INFO_NAMED("CostMap2DClient", "cancel EVENT for costmap2D by %d.%d.%d",
-				component.getSubsystemID(), component.getNodeID(), component.getComponentID());
+		ROS_INFO_NAMED("CostMap2DClient", "cancel EVENT for costmap2D by %s", component.str().c_str());
 		pEventsClient_ReceiveFSM->cancel_event(*this, component, p_query_costmap2d_msg);
 	}
 }

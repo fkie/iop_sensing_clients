@@ -89,6 +89,7 @@ protected:
 
 	std::string p_tf_frame_costmap;
 	std::string p_tf_frame_odom;
+	double p_hz;
 
 	ros::NodeHandle p_nh;
 	ros::Timer p_query_timer;
