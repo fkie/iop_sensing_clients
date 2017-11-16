@@ -106,7 +106,7 @@ void CostMap2DClient_ReceiveFSM::create_events(std::string service_uri, JausAddr
 			ROS_INFO_NAMED("CostMap2DClient", "create QUERY timer to get costmap2D from %s", component.str().c_str());
 			p_query_timer = p_nh.createTimer(ros::Duration(1.0 / p_hz), &CostMap2DClient_ReceiveFSM::pQueryCallback, this);
 		} else {
-			ROS_WARN_NAMED("CostMap2DClient", "invalid hz %f.2f for QUERY timer to get costmap2D from %s", p_hz, component.str().c_str());
+			ROS_WARN_NAMED("CostMap2DClient", "invalid hz %.2f for QUERY timer to get costmap2D from %s", p_hz, component.str().c_str());
 		}
 	} else {
 		ROS_INFO_NAMED("CostMap2DClient", "create EVENT to get costmap2D from %s", component.str().c_str());

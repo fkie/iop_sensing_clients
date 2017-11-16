@@ -111,7 +111,7 @@ void MeasurementSensorClient_ReceiveFSM::create_events(std::string service_uri, 
 			ROS_INFO_NAMED("MeasurementSensorClient", "create QUERY timer to get measurement from %s", component.str().c_str());
 			p_query_timer = p_nh.createTimer(ros::Duration(1.0 / p_hz), &MeasurementSensorClient_ReceiveFSM::pQueryCallback, this);
 		} else {
-			ROS_WARN_NAMED("MeasurementSensorClient", "invalid hz %f.2f for QUERY timer to get measurement from %s", p_hz, component.str().c_str());
+			ROS_WARN_NAMED("MeasurementSensorClient", "invalid hz %.2f for QUERY timer to get measurement from %s", p_hz, component.str().c_str());
 		}
 	} else {
 		ROS_INFO_NAMED("MeasurementSensorClient", "create EVENT to get measurement from %s", component.str().c_str());
