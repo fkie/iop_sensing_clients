@@ -124,7 +124,7 @@ void MeasurementSensorClient_ReceiveFSM::cancel_events(std::string service_uri, 
 	if (by_query) {
 		p_query_timer.stop();
 	} else {
-		ROS_INFO_NAMED("GlobalPoseSensorClient", "cancel EVENT for global pose by %s", component.str().c_str());
+		ROS_INFO_NAMED("MeasurementSensorClient", "cancel EVENT for measurement @ %s", component.str().c_str());
 		pEventsClient_ReceiveFSM->cancel_event(*this, component, p_query_measurement);
 	}
 }
