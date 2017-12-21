@@ -220,10 +220,10 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 					}
 				}
 			} else {
-				std::cout << "  wrong field value (0 expected) " << map_data->getFieldValue() << std::endl;
+				ROS_WARN("wrong field value (0 expected): %d", map_data->getFieldValue());
 			}
 		} else {
-			std::cout << "  defined size " << ros_msg.data.size() << "!=" << "data size " << map_data->getCostDataList()->getNumberOfElements() << std::endl;
+			ROS_WARN("defined size %lu != data size %d", ros_msg.data.size(), map_data->getCostDataList()->getNumberOfElements());
 		}
 		p_pub_costmap.publish(ros_msg);
 	} catch (std::exception &e) {
