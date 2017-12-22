@@ -55,7 +55,7 @@ PathReporterClient_ReceiveFSM::PathReporterClient_ReceiveFSM(urn_jaus_jss_core_T
 	p_has_access = false;
 	p_query_state = 0;
 	p_by_query = false;
-	p_hz = 0.2;
+	p_hz = 0.0;
 }
 
 
@@ -144,13 +144,10 @@ void PathReporterClient_ReceiveFSM::pQueryCallback(const ros::TimerEvent& event)
 //				p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
 //				sendJausMessage(p_query_path, p_remote_addr);
 //			}
-			if (p_by_query) {
-				// otherwise it is sent event
-				if (p_available_paths.find(PLANNED_GLOBAL_PATH) != p_available_paths.end()) {
-					// request PlannedGlobalPath
-					p_query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
-					sendJausMessage(p_query_path, p_remote_addr);
-				}
+			if (p_available_paths.find(PLANNED_GLOBAL_PATH) != p_available_paths.end()) {
+				// request PlannedGlobalPath
+				p_query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
+				sendJausMessage(p_query_path, p_remote_addr);
 			}
 //			if (p_available_paths.find(PLANNED_LOCAL_PATH) != p_available_paths.end()) {
 //				// request PlannedLocalPath
@@ -210,6 +207,7 @@ void PathReporterClient_ReceiveFSM::handleReportPathReporterCapabilitiesAction(R
 		// TODO: check for other specifications, e.g. target resolution
 	}
 	p_query_state = 1;
+	p_query_timer.stop();
 	if (p_remote_addr.get() != 0) {
 		if (p_by_query) {
 			if (p_hz > 0) {
@@ -221,7 +219,7 @@ void PathReporterClient_ReceiveFSM::handleReportPathReporterCapabilitiesAction(R
 		} else {
 			ROS_INFO_NAMED("PathReporterClient", "create EVENT to get path from PathReporter @ %s", p_remote_addr.str().c_str());
 			// there is no way to request all paths, so we decide for planned global path. Other paths are requested by query.
-			p_query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
+			p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_GLOBAL_PATH);
 			pEventsClient_ReceiveFSM->create_event(*this, p_remote_addr, p_query_path, 0.0);
 		}
 	}
