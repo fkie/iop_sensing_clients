@@ -5,9 +5,9 @@ See [iop_core](https://github.com/fkie/iop_core/blob/master/README.md) for use i
 The repository contains clients designed to control services on IOP complient robot. All client services are based on ```SlaveHandlerInterface``` and use funtionality of [Slave](https://github.com/fkie/iop_core/blob/master/doc/iop_core_packages.md#iop_ocu_slavelib_fkie).  
 List of client service plugins in this repository:
 
-[iop_client_costmap2d_fkie: CostMap2DClient](#iop_client_costmap2d_fkie-CostMap2DClient)  
-[iop_client_measurement_sensor_fkie: MeasurementSensor](#iop_client_measurement_sensor_fkie-MeasurementSensorClient)  
-[iop_client_path_reporter_fkie: PathReporter](#iop_client_path_reporter_fkie-PathReporterClient)  
+[iop_client_costmap2d_fkie: CostMap2DClient](#iop_client_costmap2d_fkie-costmap2dclient)  
+[iop_client_measurement_sensor_fkie: MeasurementSensor](#iop_client_measurement_sensor_fkie-measurementsensorclient)  
+[iop_client_path_reporter_fkie: PathReporter](#iop_client_path_reporter_fkie-pathreporterclient)  
 
 
 ## _iop_client_costmap2d_fkie:_ CostMap2DClient
@@ -46,7 +46,7 @@ _tf_frame_odom_ -> _tf_frame_costmap_
 
 ## _iop_client_measurement_sensor_fkie:_ MeasurementSensorClient
 
-Request measurements from [MeasurementSensor](https://github.com/fkie/iop_sensing#_iop_measurement_sensor_fkie-measurementsensor) and publish these as measurement message defined in [iop_msgs_fkie](https://github.com/fkie/iop_core/tree/master/iop_msgs_fkie).
+Request measurements from [MeasurementSensor](https://github.com/fkie/iop_sensing#iop_measurement_sensor_fkie-measurementsensor) and publish these as measurement message defined in [iop_msgs_fkie](https://github.com/fkie/iop_core/tree/master/iop_msgs_fkie).
 
 #### Parameter:
 
