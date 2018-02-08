@@ -84,7 +84,7 @@ void PathReporterClient_ReceiveFSM::setupNotifications()
 	p_pub_historical_global_geopath = cfg.advertise<geographic_msgs::GeoPath>("historical_global_geopath", 10, false);
 	// TODO: p_pub_historical_local_path = cfg.advertise<nav_msgs::Path>("historical_local_path", 10, false);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
-	slave.add_supported_service(*this, "urn:jaus:jss:iop:PathReporter", 1, 1);
+	slave.add_supported_service(*this, "urn:jaus:jss:iop:PathReporter", 1, 255);
 }
 
 void PathReporterClient_ReceiveFSM::control_allowed(std::string service_uri, JausAddress component, unsigned char authority)

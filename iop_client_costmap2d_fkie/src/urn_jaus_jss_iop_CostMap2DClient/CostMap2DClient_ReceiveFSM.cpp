@@ -75,7 +75,7 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 	cfg.param("hz", p_hz, p_hz, false, false);
 	p_pub_costmap = cfg.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
-	slave.add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 0);
+	slave.add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 255);
 }
 
 void CostMap2DClient_ReceiveFSM::control_allowed(std::string service_uri, JausAddress component, unsigned char authority)

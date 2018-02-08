@@ -80,7 +80,7 @@ void MeasurementSensorClient_ReceiveFSM::setupNotifications()
 	cfg.param("hz", p_hz, p_hz, false, false);
 	p_pub_meas = cfg.advertise<iop_msgs_fkie::Measurement>("measurement", 10, false);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
-	slave.add_supported_service(*this, "urn:jaus:jss:iop:MeasurementSensor", 1, 0);
+	slave.add_supported_service(*this, "urn:jaus:jss:iop:MeasurementSensor", 1, 255);
 }
 
 void MeasurementSensorClient_ReceiveFSM::control_allowed(std::string service_uri, JausAddress component, unsigned char authority)
