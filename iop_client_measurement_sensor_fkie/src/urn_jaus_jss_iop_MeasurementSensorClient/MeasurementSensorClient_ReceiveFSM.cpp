@@ -184,7 +184,7 @@ void MeasurementSensorClient_ReceiveFSM::handleReportMeasurementAction(ReportMea
 		mval.alert_level = valseq->getReadingRec()->getAlertLevel();
 		mval.alert_explanation = valseq->getReadingRec()->getAlertExplanation();
 		mval.extended_info = valseq->getReadingRec()->getExtendedInfo();
-		for (unsigned int v = 0; v < valseq->getValueList()->getNumberOfElements(); i++) {
+		for (unsigned int v = 0; v < valseq->getValueList()->getNumberOfElements(); v++) {
 			mval.value.push_back(valseq->getValueList()->getElement(v)->getValue());
 		}
 		rosmsg.values.push_back(mval);
