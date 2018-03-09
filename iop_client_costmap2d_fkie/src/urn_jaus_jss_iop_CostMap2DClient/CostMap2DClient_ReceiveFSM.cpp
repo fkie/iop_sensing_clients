@@ -23,7 +23,11 @@ along with this program; or you can read the full license at
 
 #include "urn_jaus_jss_iop_CostMap2DClient/CostMap2DClient_ReceiveFSM.h"
 
-#include <tf/transform_datatypes.h>
+#include <tf2/transform_datatypes.h>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Transform.h>
+
+//#include <tf/transform_datatypes.h>
 #include <iop_builder_fkie/timestamp.h>
 #include <iop_ocu_slavelib_fkie/Slave.h>
 #include <iop_component_fkie/iop_config.h>
@@ -52,6 +56,7 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	this->pAccessControlClient_ReceiveFSM = pAccessControlClient_ReceiveFSM;
 	p_tf_frame_costmap = "costmap";
 	p_tf_frame_odom = "odom";
+	p_send_inverse_trafo = true;
 	p_has_access = false;
 	p_hz = 1.0;
 }
@@ -72,6 +77,7 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 	iop::Config cfg("~CostMap2DClient");
 	cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
 	cfg.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
+	cfg.param("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo);
 	cfg.param("hz", p_hz, p_hz, false, false);
 	p_pub_costmap = cfg.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
@@ -162,23 +168,38 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 		ros_msg.data.resize(ros_msg.info.width * ros_msg.info.height);
 
 		// we have to send a transform from odometry to the origin of the map
+		tf2::Quaternion q;
+		q.setRPY(0, 0, -map_pose->getCostMap2DLocalPoseRec()->getMapRotation());
+		tf2::Vector3 r(map_pose->getCostMap2DLocalPoseRec()->getMapCenterX(), map_pose->getCostMap2DLocalPoseRec()->getMapCenterY(), 0);
+		tf2::Transform transform( q,r);
 		geometry_msgs::TransformStamped tf_msg;
-		tf_msg.transform.translation.x = map_pose->getCostMap2DLocalPoseRec()->getMapCenterX();
-		tf_msg.transform.translation.y = map_pose->getCostMap2DLocalPoseRec()->getMapCenterY();
-		tf_msg.transform.translation.z = 0.0;
-		double roll = 0.0;
-		double pitch = 0.0;
-		double yaw = map_pose->getCostMap2DLocalPoseRec()->getMapRotation();
-		tf::Quaternion q = tf::createQuaternionFromRPY(roll, pitch, yaw);
-		tf_msg.transform.rotation.x = q.x();
-		tf_msg.transform.rotation.y = q.y();
-		tf_msg.transform.rotation.z = q.z();
-		tf_msg.transform.rotation.w = q.w();
 		tf_msg.header.stamp = ros::Time::now();
-		tf_msg.header.frame_id = this->p_tf_frame_odom;
-		tf_msg.child_frame_id = this->p_tf_frame_costmap;
+		double yaw = map_pose->getCostMap2DLocalPoseRec()->getMapRotation();
 		ROS_DEBUG_NAMED("CostMap2DClient", "decode map with origin %.2f, %.2f, yaw: %.2f", tf_msg.transform.translation.x, tf_msg.transform.translation.y, yaw);
-		ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s, stamp: %d.%d", this->p_tf_frame_odom.c_str(), this->p_tf_frame_costmap.c_str(), tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
+		if (!p_send_inverse_trafo) {
+			tf_msg.transform.translation.x = transform.getOrigin().getX();
+			tf_msg.transform.translation.y = transform.getOrigin().getY();
+			tf_msg.transform.translation.z = transform.getOrigin().getZ();
+			tf_msg.transform.rotation.x = transform.getRotation().getX();
+			tf_msg.transform.rotation.y = transform.getRotation().getY();
+			tf_msg.transform.rotation.z = transform.getRotation().getZ();
+			tf_msg.transform.rotation.w = transform.getRotation().getW();
+			tf_msg.child_frame_id = this->p_tf_frame_costmap;
+			tf_msg.header.frame_id = this->p_tf_frame_odom;
+			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s, stamp: %d.%d", this->p_tf_frame_costmap.c_str(), this->p_tf_frame_odom.c_str(), tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
+		} else {
+			tf2::Transform inverse = transform.inverse();
+			tf_msg.transform.translation.x = inverse.getOrigin().getX();
+			tf_msg.transform.translation.y = inverse.getOrigin().getY();
+			tf_msg.transform.translation.z = inverse.getOrigin().getZ();
+			tf_msg.transform.rotation.x = inverse.getRotation().getX();
+			tf_msg.transform.rotation.y = inverse.getRotation().getY();
+			tf_msg.transform.rotation.z = inverse.getRotation().getZ();
+			tf_msg.transform.rotation.w = inverse.getRotation().getW();
+			tf_msg.header.frame_id = this->p_tf_frame_odom;
+			tf_msg.child_frame_id = this->p_tf_frame_costmap;
+			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s, stamp: %d.%d", this->p_tf_frame_odom.c_str(), this->p_tf_frame_costmap.c_str(), tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
+		}
 		if (! tf_msg.child_frame_id.empty()) {
 			p_tf_broadcaster.sendTransform(tf_msg);
 		}

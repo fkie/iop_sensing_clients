@@ -89,6 +89,7 @@ protected:
 
 	std::string p_tf_frame_costmap;
 	std::string p_tf_frame_odom;
+	bool p_send_inverse_trafo;
 	double p_hz;
 
 	ros::NodeHandle p_nh;
