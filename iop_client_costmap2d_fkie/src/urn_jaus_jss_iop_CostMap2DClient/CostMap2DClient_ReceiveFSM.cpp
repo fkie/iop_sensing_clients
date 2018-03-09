@@ -178,7 +178,7 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 		tf_msg.header.frame_id = this->p_tf_frame_odom;
 		tf_msg.child_frame_id = this->p_tf_frame_costmap;
 		ROS_DEBUG_NAMED("CostMap2DClient", "decode map with origin %.2f, %.2f, yaw: %.2f", tf_msg.transform.translation.x, tf_msg.transform.translation.y, yaw);
-		ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s", this->p_tf_frame_odom.c_str(), this->p_tf_frame_costmap.c_str());
+		ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s, stamp: %d.%d", this->p_tf_frame_odom.c_str(), this->p_tf_frame_costmap.c_str(), tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
 		if (! tf_msg.child_frame_id.empty()) {
 			p_tf_broadcaster.sendTransform(tf_msg);
 		}
