@@ -267,8 +267,7 @@ void PathReporterClient_ReceiveFSM::pPublishHistoricalGlobalPath(ReportPath::Bod
 		if (pose->isYawValid()) {
 			yaw = pose->getYaw();
 		}
-		tf::Quaternion quat;
-		quat.setRPY(roll, pitch, yaw);
+		tf::Quaternion quat = tf::createQuaternionFromRPY(roll, pitch, yaw);
 		if (p_pub_historical_global_geopath.getNumSubscribers() > 0) {
 			geop.pose.orientation.x = quat.x();
 			geop.pose.orientation.y = quat.y();
@@ -282,8 +281,7 @@ void PathReporterClient_ReceiveFSM::pPublishHistoricalGlobalPath(ReportPath::Bod
 				double northing, easting;
 				std::string zone;
 				gps_common::LLtoUTM(lat, lon, northing, easting, zone);
-				tf::Quaternion quat;
-				quat.setRPY(roll, pitch, yaw);
+				tf::Quaternion quat = tf::createQuaternionFromRPY(roll, pitch, yaw);
 
 				geometry_msgs::PoseStamped npose;
 				npose.header = geop.header;
@@ -348,8 +346,7 @@ void PathReporterClient_ReceiveFSM::pPublishPlannedGlobalPath(ReportPath::Body::
 		if (pose->isYawValid()) {
 			yaw = pose->getYaw();
 		}
-		tf::Quaternion quat;
-		quat.setRPY(roll, pitch, yaw);
+		tf::Quaternion quat = tf::createQuaternionFromRPY(roll, pitch, yaw);
 		if (p_pub_planned_global_geopath.getNumSubscribers() > 0) {
 			geop.pose.orientation.x = quat.x();
 			geop.pose.orientation.y = quat.y();
@@ -363,8 +360,7 @@ void PathReporterClient_ReceiveFSM::pPublishPlannedGlobalPath(ReportPath::Body::
 				double northing, easting;
 				std::string zone;
 				gps_common::LLtoUTM(lat, lon, northing, easting, zone);
-				tf::Quaternion quat;
-				quat.setRPY(roll, pitch, yaw);
+				tf::Quaternion quat = tf::createQuaternionFromRPY(roll, pitch, yaw);
 
 				geometry_msgs::PoseStamped npose;
 				npose.header = geop.header;

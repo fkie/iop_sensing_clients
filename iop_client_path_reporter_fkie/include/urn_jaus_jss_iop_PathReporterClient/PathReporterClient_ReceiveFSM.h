@@ -44,7 +44,6 @@ along with this program; or you can read the full license at
 #include <geographic_msgs/GeoPoseStamped.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Quaternion.h>
-#include <tf/transform_broadcaster.h>
 
 #include <iop_ocu_slavelib_fkie/SlaveHandlerInterface.h>
 #include <iop_events_fkie/EventHandlerInterface.h>
@@ -96,7 +95,6 @@ protected:
 
 	std::string p_tf_frame_world;
 	std::string p_tf_frame_robot;
-	tf::TransformBroadcaster p_tf_broadcaster;
 
 	ros::NodeHandle p_nh;
 	ros::Timer p_query_timer;
