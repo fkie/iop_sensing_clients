@@ -94,10 +94,11 @@ protected:
 	urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
 
 	std::string p_tf_frame_world;
-	std::string p_tf_frame_robot;
+	std::string p_tf_frame_odom;
 
 	ros::NodeHandle p_nh;
 	ros::Timer p_query_timer;
+	ros::Publisher p_pub_planned_local_path;
 	ros::Publisher p_pub_planned_global_path;
 	ros::Publisher p_pub_historical_global_path;
 	ros::Publisher p_pub_planned_global_geopath;
@@ -115,7 +116,9 @@ protected:
 	void pQueryCallback(const ros::TimerEvent& event);
 
 	void pPublishHistoricalGlobalPath(ReportPath::Body::PathVar::HistoricalGlobalPath* path);
+	void pPublishHistoricalLocalPath(ReportPath::Body::PathVar::HistoricalLocalPath* path);
 	void pPublishPlannedGlobalPath(ReportPath::Body::PathVar::PlannedGlobalPath* path);
+	void pPublishPlannedLocalPath(ReportPath::Body::PathVar::PlannedLocalPath* path);
 
 };
 

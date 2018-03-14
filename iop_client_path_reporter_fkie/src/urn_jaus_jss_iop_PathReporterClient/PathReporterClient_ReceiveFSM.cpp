@@ -51,7 +51,7 @@ PathReporterClient_ReceiveFSM::PathReporterClient_ReceiveFSM(urn_jaus_jss_core_T
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
 	p_tf_frame_world = "/world";
-//	p_tf_frame_robot = "measurement_link";
+	p_tf_frame_odom = "odom";
 	p_has_access = false;
 	p_query_state = 0;
 	p_by_query = false;
@@ -76,13 +76,14 @@ void PathReporterClient_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving", pEventsClient_ReceiveFSM->getHandler(), "InternalStateChange_To_EventsClient_ReceiveFSM_Receiving", "PathReporterClient_ReceiveFSM");
 	iop::Config cfg("~PathReporterClient");
 	cfg.param("tf_frame_world", p_tf_frame_world, p_tf_frame_world);
-	// TODO: cfg.param("tf_frame_robot", p_tf_frame_robot, p_tf_frame_robot);
+	cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
 	cfg.param("hz", p_hz, p_hz, false, false);
+	p_pub_planned_local_path = cfg.advertise<nav_msgs::Path>("planned_local_path", 10, false);
+	p_pub_historical_local_path = cfg.advertise<nav_msgs::Path>("historical_local_path", 10, false);
 	p_pub_planned_global_path = cfg.advertise<nav_msgs::Path>("planned_global_path", 10, false);
-	p_pub_historical_global_path = cfg.advertise<nav_msgs::Path>("historical_global_path", 10, false);
+//	p_pub_historical_global_path = cfg.advertise<nav_msgs::Path>("historical_global_path", 10, false);
 	p_pub_planned_global_geopath = cfg.advertise<geographic_msgs::GeoPath>("planned_global_geopath", 10, false);
-	p_pub_historical_global_geopath = cfg.advertise<geographic_msgs::GeoPath>("historical_global_geopath", 10, false);
-	// TODO: p_pub_historical_local_path = cfg.advertise<nav_msgs::Path>("historical_local_path", 10, false);
+//	p_pub_historical_global_geopath = cfg.advertise<geographic_msgs::GeoPath>("historical_global_geopath", 10, false);
 	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
 	slave.add_supported_service(*this, "urn:jaus:jss:iop:PathReporter", 1, 255);
 }
@@ -111,7 +112,7 @@ void PathReporterClient_ReceiveFSM::access_deactivated(std::string service_uri, 
 void PathReporterClient_ReceiveFSM::create_events(std::string service_uri, JausAddress component, bool by_query)
 {
 	p_by_query = by_query;
-	ROS_INFO_NAMED("PathReporterClient", "get capabilities from PathReporter @ %s", p_remote_addr.str().c_str());
+	ROS_DEBUG_NAMED("PathReporterClient", "get capabilities from PathReporter @ %s", p_remote_addr.str().c_str());
 	sendJausMessage(p_query_cap, component);
 	p_query_timer = p_nh.createTimer(ros::Duration(3), &PathReporterClient_ReceiveFSM::pQueryCallback, this);
 }
@@ -135,25 +136,33 @@ void PathReporterClient_ReceiveFSM::pQueryCallback(const ros::TimerEvent& event)
 			sendJausMessage(p_query_cap, p_remote_addr);
 		} else {
 			if (p_available_paths.find(HISTORICAL_GLOBAL_PATH) != p_available_paths.end()) {
+				ROS_DEBUG_NAMED("PathReporterClient", "send query for HISTORICAL_GLOBAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
 				// request HistoricalGlobalPath
-				p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_GLOBAL_PATH);
-				sendJausMessage(p_query_path, p_remote_addr);
+				QueryPath query_path;
+				query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_GLOBAL_PATH);
+				sendJausMessage(query_path, p_remote_addr);
 			}
-//			if (p_available_paths.find(HISTORICAL_LOCAL_PATH) != p_available_paths.end()) {
-//				// request HistoricalLocalPath
-//				p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
-//				sendJausMessage(p_query_path, p_remote_addr);
-//			}
+			if (p_by_query && p_available_paths.find(HISTORICAL_LOCAL_PATH) != p_available_paths.end()) {
+				ROS_DEBUG_NAMED("PathReporterClient", "send query for HISTORICAL_LOCAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
+				// request HistoricalLocalPath
+				QueryPath query_path;
+				query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
+				sendJausMessage(query_path, p_remote_addr);
+			}
 			if (p_available_paths.find(PLANNED_GLOBAL_PATH) != p_available_paths.end()) {
 				// request PlannedGlobalPath
-				p_query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
-				sendJausMessage(p_query_path, p_remote_addr);
+				ROS_DEBUG_NAMED("PathReporterClient", "send query for PLANNED_GLOBAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
+				QueryPath query_path;
+				query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
+				sendJausMessage(query_path, p_remote_addr);
 			}
-//			if (p_available_paths.find(PLANNED_LOCAL_PATH) != p_available_paths.end()) {
-//				// request PlannedLocalPath
-//				p_query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_LOCAL_PATH);
-//				sendJausMessage(p_query_path, p_remote_addr);
-//			}
+			if (p_available_paths.find(PLANNED_LOCAL_PATH) != p_available_paths.end()) {
+				ROS_DEBUG_NAMED("PathReporterClient", "send query for PLANNED_LOCAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
+				// request PlannedLocalPath
+				QueryPath query_path;
+				query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_LOCAL_PATH);
+				sendJausMessage(query_path, p_remote_addr);
+			}
 		}
 	}
 }
@@ -186,12 +195,26 @@ void PathReporterClient_ReceiveFSM::handleReportPathAction(ReportPath msg, Recei
 		}
 		pPublishHistoricalGlobalPath(msg.getBody()->getPathVar()->getHistoricalGlobalPath());
 	}
+	if (path_type == HISTORICAL_LOCAL_PATH) {
+		if (p_pub_historical_local_path.getNumSubscribers() == 0) {
+			// we have no subscriptions, save cpu
+			return;
+		}
+		pPublishHistoricalLocalPath(msg.getBody()->getPathVar()->getHistoricalLocalPath());
+	}
 	if (path_type == PLANNED_GLOBAL_PATH) {
 		if (p_pub_planned_global_geopath.getNumSubscribers() == 0 && p_pub_planned_global_path.getNumSubscribers() == 0) {
 			// we have no subscriptions, save cpu
 			return;
 		}
 		pPublishPlannedGlobalPath(msg.getBody()->getPathVar()->getPlannedGlobalPath());
+	}
+	if (path_type == PLANNED_LOCAL_PATH) {
+		if (p_pub_planned_local_path.getNumSubscribers() == 0) {
+			// we have no subscriptions, save cpu
+			return;
+		}
+		pPublishPlannedLocalPath(msg.getBody()->getPathVar()->getPlannedLocalPath());
 	}
 }
 
@@ -203,14 +226,15 @@ void PathReporterClient_ReceiveFSM::handleReportPathReporterCapabilitiesAction(R
 	p_available_paths.clear();
 	for (unsigned int i = 0; i < cap_list->getNumberOfElements(); i++) {
 		// get available path types
+		ROS_INFO_NAMED("PathReporterClient", "add path type %d for PathReporter @ %s", (int)cap_list->getElement(i)->getPathType(), p_remote_addr.str().c_str());
 		p_available_paths.insert(cap_list->getElement(i)->getPathType());
 		// TODO: check for other specifications, e.g. target resolution
 	}
 	p_query_state = 1;
-	p_query_timer.stop();
 	if (p_remote_addr.get() != 0) {
 		if (p_by_query) {
 			if (p_hz > 0) {
+				p_query_timer.stop();
 				ROS_INFO_NAMED("PathReporterClient", "create QUERY timer to get path from PathReporter @ %s", p_remote_addr.str().c_str());
 				p_query_timer = p_nh.createTimer(ros::Duration(1.0 / p_hz), &PathReporterClient_ReceiveFSM::pQueryCallback, this);
 			} else {
@@ -218,8 +242,8 @@ void PathReporterClient_ReceiveFSM::handleReportPathReporterCapabilitiesAction(R
 			}
 		} else {
 			ROS_INFO_NAMED("PathReporterClient", "create EVENT to get path from PathReporter @ %s", p_remote_addr.str().c_str());
-			// there is no way to request all paths, so we decide for planned global path. Other paths are requested by query.
-			p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_GLOBAL_PATH);
+			// there is no way to request all paths, so we decide for historical local path. Other paths are requested by query @0.3Hz
+			p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
 			pEventsClient_ReceiveFSM->create_event(*this, p_remote_addr, p_query_path, 0.0);
 		}
 	}
@@ -304,6 +328,48 @@ void PathReporterClient_ReceiveFSM::pPublishHistoricalGlobalPath(ReportPath::Bod
 	}
 }
 
+void PathReporterClient_ReceiveFSM::pPublishHistoricalLocalPath(ReportPath::Body::PathVar::HistoricalLocalPath* path)
+{
+	if (p_pub_historical_local_path.getNumSubscribers() == 0) {
+		return;
+	}
+	nav_msgs::Path navpath;
+	navpath.header.stamp = ros::Time::now();
+	navpath.header.frame_id = p_tf_frame_odom;
+	for (unsigned int i = 0; i < path->getNumberOfElements(); i++) {
+		double roll, pitch, yaw = 0.0;
+		ReportPath::Body::PathVar::HistoricalLocalPath::LocalPoseRec* pose = path->getElement(i);
+		if (pose->isRollValid()) {
+			roll = pose->getRoll();
+		}
+		if (pose->isPitchValid()) {
+			pitch = pose->getPitch();
+		}
+		if (pose->isYawValid()) {
+			yaw = pose->getYaw();
+		}
+		// create Path
+		tf::Quaternion quat = tf::createQuaternionFromRPY(roll, pitch, yaw);
+		geometry_msgs::PoseStamped npose;
+		if (pose->isTimeStampValid()) {
+			// get timestamp
+			ReportPath::Body::PathVar::HistoricalLocalPath::LocalPoseRec::TimeStamp* ts = pose->getTimeStamp();
+			iop::Timestamp stamp(ts->getDay(), ts->getHour(), ts->getMinutes(), ts->getSeconds(), ts->getMilliseconds());
+			npose.header.stamp = stamp.ros_time;
+		}
+		npose.header.frame_id = p_tf_frame_odom;
+		npose.pose.position.x = pose->getX();
+		npose.pose.position.y = pose->getY();
+		npose.pose.position.z = pose->getZ();
+		npose.pose.orientation.x = quat.x();
+		npose.pose.orientation.y = quat.y();
+		npose.pose.orientation.z = quat.z();
+		npose.pose.orientation.w = quat.w();
+		navpath.poses.push_back(npose);
+	}
+	p_pub_historical_local_path.publish(navpath);
+}
+
 void PathReporterClient_ReceiveFSM::pPublishPlannedGlobalPath(ReportPath::Body::PathVar::PlannedGlobalPath* path)
 {
 	geographic_msgs::GeoPath geopath;
@@ -381,6 +447,48 @@ void PathReporterClient_ReceiveFSM::pPublishPlannedGlobalPath(ReportPath::Body::
 	if (p_pub_planned_global_geopath.getNumSubscribers() > 0) {
 		p_pub_planned_global_geopath.publish(geopath);
 	}
+}
+
+void PathReporterClient_ReceiveFSM::pPublishPlannedLocalPath(ReportPath::Body::PathVar::PlannedLocalPath* path)
+{
+	if (p_pub_planned_local_path.getNumSubscribers() == 0) {
+		return;
+	}
+	nav_msgs::Path navpath;
+	navpath.header.stamp = ros::Time::now();
+	navpath.header.frame_id = p_tf_frame_odom;
+	for (unsigned int i = 0; i < path->getNumberOfElements(); i++) {
+		double roll, pitch, yaw = 0.0;
+		ReportPath::Body::PathVar::PlannedLocalPath::LocalPoseRec* pose = path->getElement(i);
+		if (pose->isRollValid()) {
+			roll = pose->getRoll();
+		}
+		if (pose->isPitchValid()) {
+			pitch = pose->getPitch();
+		}
+		if (pose->isYawValid()) {
+			yaw = pose->getYaw();
+		}
+		// create Path
+		tf::Quaternion quat = tf::createQuaternionFromRPY(roll, pitch, yaw);
+		geometry_msgs::PoseStamped npose;
+		if (pose->isTimeStampValid()) {
+			// get timestamp
+			ReportPath::Body::PathVar::PlannedLocalPath::LocalPoseRec::TimeStamp* ts = pose->getTimeStamp();
+			iop::Timestamp stamp(ts->getDay(), ts->getHour(), ts->getMinutes(), ts->getSeconds(), ts->getMilliseconds());
+			npose.header.stamp = stamp.ros_time;
+		}
+		npose.header.frame_id = p_tf_frame_odom;
+		npose.pose.position.x = pose->getX();
+		npose.pose.position.y = pose->getY();
+		npose.pose.position.z = pose->getZ();
+		npose.pose.orientation.x = quat.x();
+		npose.pose.orientation.y = quat.y();
+		npose.pose.orientation.z = quat.z();
+		npose.pose.orientation.w = quat.w();
+		navpath.poses.push_back(npose);
+	}
+	p_pub_planned_local_path.publish(navpath);
 }
 
 };
