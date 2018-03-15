@@ -58,7 +58,7 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	p_tf_frame_odom = "odom";
 	p_send_inverse_trafo = false;
 	p_has_access = false;
-	p_hz = 1.0;
+	p_hz = 0.0;
 }
 
 
@@ -167,29 +167,19 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 		ros_msg.info.resolution = map_size->getMapWidth() / (double)ros_msg.info.width;
 		ros_msg.data.resize(ros_msg.info.width * ros_msg.info.height);
 
+		// TODO: adde check for Global Coordinate
 		// we have to send a transform from odometry to the origin of the map
 		tf2::Quaternion q;
-		double yaw = -pround(map_pose->getCostMap2DLocalPoseRec()->getMapRotation());
+		double yaw = pround(map_pose->getCostMap2DLocalPoseRec()->getMapRotation());
 		q.setRPY(0, 0, yaw);
-		double origin_x = pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterX()) - map_size->getMapWidth() / 2.0;
-		double origin_y = pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterY()) - map_size->getMapHeight() / 2.0;
-		ROS_INFO_NAMED("CostMap2DClient", "map center %.2f, %.2f, ros-origin: %.2f, %.2f, yaw: %.2f", pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterX()), pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterY()), origin_x, origin_y, yaw);
-		tf2::Vector3 r(pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterX()), pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterY()), 0.0);
+		double x_center = pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterX());
+		double y_center = pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterY());
+		ROS_DEBUG_NAMED("CostMap2DClient", "map center %.2f, %.2f, yaw: %.2f", x_center, y_center, yaw);
+		tf2::Vector3 r(x_center, y_center, 0.0);
 		tf2::Transform transform(q, r);
 		geometry_msgs::TransformStamped tf_msg;
 		tf_msg.header.stamp = ros::Time::now();
 		if (p_send_inverse_trafo) {
-			tf_msg.transform.translation.x = transform.getOrigin().getX();
-			tf_msg.transform.translation.y = transform.getOrigin().getY();
-			tf_msg.transform.translation.z = transform.getOrigin().getZ();
-			tf_msg.transform.rotation.x = transform.getRotation().getX();
-			tf_msg.transform.rotation.y = transform.getRotation().getY();
-			tf_msg.transform.rotation.z = transform.getRotation().getZ();
-			tf_msg.transform.rotation.w = transform.getRotation().getW();
-			tf_msg.child_frame_id = this->p_tf_frame_costmap;
-			tf_msg.header.frame_id = this->p_tf_frame_odom;
-			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", this->p_tf_frame_costmap.c_str(), this->p_tf_frame_odom.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
-		} else {
 			tf2::Transform inverse = transform.inverse();
 			tf_msg.transform.translation.x = inverse.getOrigin().getX();
 			tf_msg.transform.translation.y = inverse.getOrigin().getY();
@@ -198,12 +188,22 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 			tf_msg.transform.rotation.y = inverse.getRotation().getY();
 			tf_msg.transform.rotation.z = inverse.getRotation().getZ();
 			tf_msg.transform.rotation.w = inverse.getRotation().getW();
+			tf_msg.child_frame_id = this->p_tf_frame_costmap;
+			tf_msg.header.frame_id = this->p_tf_frame_odom;
+		} else {
+			tf_msg.transform.translation.x = transform.getOrigin().getX();
+			tf_msg.transform.translation.y = transform.getOrigin().getY();
+			tf_msg.transform.translation.z = transform.getOrigin().getZ();
+			tf_msg.transform.rotation.x = transform.getRotation().getX();
+			tf_msg.transform.rotation.y = transform.getRotation().getY();
+			tf_msg.transform.rotation.z = transform.getRotation().getZ();
+			tf_msg.transform.rotation.w = transform.getRotation().getW();
 			tf_msg.header.frame_id = this->p_tf_frame_odom;
 			tf_msg.child_frame_id = this->p_tf_frame_costmap;
-			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", this->p_tf_frame_odom.c_str(), this->p_tf_frame_costmap.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
 		}
-		if (! tf_msg.child_frame_id.empty()) {
+		if (! tf_msg.child_frame_id.empty() && !tf_msg.header.frame_id.empty()) {
 			p_tf_broadcaster.sendTransform(tf_msg);
+			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", tf_msg.header.frame_id.c_str(), tf_msg.child_frame_id.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
 		}
 
 		// set the origin of the map:
