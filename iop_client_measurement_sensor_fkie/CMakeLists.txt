@@ -13,9 +13,6 @@ find_package(catkin REQUIRED COMPONENTS
                 tf
                 )
 
-## System dependencies are found with CMake's conventions
-find_package(Boost REQUIRED COMPONENTS system thread)
-
 iop_init(COMPONENT_ID 0)
 
 ###################################
@@ -34,7 +31,6 @@ catkin_package(
         iop_ocu_slavelib_fkie
         sensor_msgs
         tf
-    DEPENDS Boost
 )
 
 ###########

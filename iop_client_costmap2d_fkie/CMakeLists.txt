@@ -6,6 +6,7 @@ project(iop_client_costmap2d_fkie)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
                 geometry_msgs
+                iop_component_fkie
                 iop_ocu_slavelib_fkie
                 nav_msgs
                 roscpp
@@ -16,7 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system thread)
 
-iop_init(COMPONENT_ID 171)
+iop_init(COMPONENT_ID 0)
 
 ###################################
 ## catkin specific configuration ##
@@ -31,6 +32,7 @@ catkin_package(
     LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS
         geometry_msgs
+        iop_component_fkie
         iop_ocu_slavelib_fkie
         nav_msgs
         tf2
