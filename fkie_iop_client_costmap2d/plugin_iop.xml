@@ -1,0 +1,10 @@
+<library path="libfkie_iop_client_costmap2d">
+  <class name="CostMap2DClient" type="iop::CostMap2DClientPlugin" base_class_type="iop::PluginInterface">
+    <description>
+      IOP CostMap2D client Service Plugin, e.g. for using in OCU
+    </description>
+    <iop_service name="CostMap2DClient" id="urn:jaus:jss:iop:CostMap2DClient" version="1.1">
+      <inherits_from id="urn:jaus:jss:core:AccessControlClient" min_version="1.1"/>
+    </iop_service>
+  </class>
+</library>

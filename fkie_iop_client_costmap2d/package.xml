@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>fkie_iop_client_costmap2d</name>
+  <version>1.1.0</version>
+  <description>The client service for IOP CostMap2D service </description>
+
+  <author>Alexander Tiderko</author>
+  <maintainer email="alexander.tiderko@fkie.fraunhofer.de">Alexander Tiderko</maintainer>
+  <license>GPLv2</license>
+  <url type="website">https://gitlab.fkie.fraunhofer.de/jaus/iop_sensing_clients.git</url>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <depend>geometry_msgs</depend>
+  <depend>fkie_iop_component</depend>
+  <depend>fkie_iop_ocu_slavelib</depend>
+  <depend>roscpp</depend>
+  <depend>nav_msgs</depend>
+  <depend>tf2</depend>
+  <depend>tf2_ros</depend>
+  <build_export_depend>boost</build_export_depend>
+
+  <export>
+    <fkie_iop_component plugin="${prefix}/plugin_iop.xml" />
+  </export>
+ 
+</package>
