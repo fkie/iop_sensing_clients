@@ -5,9 +5,9 @@ project(fkie_iop_client_measurement_sensor)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-                gps_common
                 fkie_iop_component
                 fkie_iop_ocu_slavelib
+                gps_common
                 roscpp
                 sensor_msgs
                 tf
@@ -29,6 +29,8 @@ catkin_package(
     CATKIN_DEPENDS
         fkie_iop_component
         fkie_iop_ocu_slavelib
+        gps_common
+        roscpp
         sensor_msgs
         tf
 )
