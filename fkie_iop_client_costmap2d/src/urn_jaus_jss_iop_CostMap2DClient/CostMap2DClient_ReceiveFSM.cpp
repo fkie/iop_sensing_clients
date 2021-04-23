@@ -41,8 +41,8 @@ namespace urn_jaus_jss_iop_CostMap2DClient
 
 CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM)
 : logger(cmp->get_logger().get_child("CostMap2DClient")),
-  p_tf_broadcaster(cmp),
-  p_query_timer(std::chrono::milliseconds(10000), std::bind(&CostMap2DClient_ReceiveFSM::pQueryCallback, this), false)
+  p_query_timer(std::chrono::milliseconds(10000), std::bind(&CostMap2DClient_ReceiveFSM::pQueryCallback, this), false),
+  p_tf_broadcaster(cmp)
 {
 
 	/*
