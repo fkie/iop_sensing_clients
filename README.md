@@ -7,7 +7,6 @@ The repository contains clients designed to control services on IOP complient ro
 ### List of service plugins in this repository:
 
 [fkie_iop_client_costmap2d: CostMap2DClient](fkie_iop_client_costmap2d/README.md)  
-[fkie_iop_client_measurement_sensor: MeasurementSensor](fkie_iop_client_measurement_sensor/README.md)  
 [fkie_iop_client_path_reporter: PathReporter](fkie_iop_client_path_reporter/README.md)  
 
 

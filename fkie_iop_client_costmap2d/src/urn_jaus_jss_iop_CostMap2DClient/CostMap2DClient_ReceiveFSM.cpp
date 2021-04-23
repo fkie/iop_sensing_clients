@@ -22,15 +22,13 @@ along with this program; or you can read the full license at
 
 
 #include "urn_jaus_jss_iop_CostMap2DClient/CostMap2DClient_ReceiveFSM.h"
-
-#include <tf2/transform_datatypes.h>
+#include <fkie_iop_component/iop_config.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Transform.h>
 
-#include <fkie_iop_builder/timestamp.h>
 #include <fkie_iop_builder/util.h>
 #include <fkie_iop_ocu_slavelib/Slave.h>
-#include <fkie_iop_component/iop_config.h>
+
 
 
 using namespace JTS;
@@ -41,7 +39,10 @@ namespace urn_jaus_jss_iop_CostMap2DClient
 
 
 
-CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM)
+CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM)
+: logger(cmp->get_logger().get_child("CostMap2DClient")),
+  p_tf_broadcaster(cmp),
+  p_query_timer(std::chrono::milliseconds(10000), std::bind(&CostMap2DClient_ReceiveFSM::pQueryCallback, this), false)
 {
 
 	/*
@@ -51,14 +52,15 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	 */
 	context = new CostMap2DClient_ReceiveFSMContext(*this);
 
-	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
-	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
 	this->pAccessControlClient_ReceiveFSM = pAccessControlClient_ReceiveFSM;
+	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
+	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
+	this->cmp = cmp;
 	p_tf_frame_costmap = "costmap";
 	p_tf_frame_odom = "odom";
 	p_send_inverse_trafo = false;
 	p_has_access = false;
-	p_hz = 0.0;
+	p_hz = 0.01;
 }
 
 
@@ -74,14 +76,36 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 	pAccessControlClient_ReceiveFSM->registerNotification("Receiving", ieHandler, "InternalStateChange_To_CostMap2DClient_ReceiveFSM_Receiving_Ready", "AccessControlClient_ReceiveFSM");
 	registerNotification("Receiving_Ready", pAccessControlClient_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControlClient_ReceiveFSM_Receiving_Ready", "CostMap2DClient_ReceiveFSM");
 	registerNotification("Receiving", pAccessControlClient_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControlClient_ReceiveFSM_Receiving", "CostMap2DClient_ReceiveFSM");
-	iop::Config cfg("~CostMap2DClient");
+
+}
+
+
+void CostMap2DClient_ReceiveFSM::setupIopConfiguration()
+{
+	iop::Config cfg(cmp, "CostMap2DClient");
+	cfg.declare_param<std::string>("tf_frame_odom", p_tf_frame_odom, true,
+		rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
+		"Defines the odometry frame id.",
+		"Default: 'odom'");
+	cfg.declare_param<std::string>("tf_frame_costmap", p_tf_frame_costmap, true,
+		rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
+		"Defines the map frame id.",
+		"Default: 'costmap'");
+	cfg.declare_param<bool>("send_inverse_trafo", p_send_inverse_trafo, true,
+		rcl_interfaces::msg::ParameterType::PARAMETER_BOOL,
+		"Sets the transform direction while publish TF frame. True: tf_frame_odom -> tf_frame_costmap.",
+		"Default: false");
+	cfg.declare_param<double>("hz", p_hz, true,
+		rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE,
+		"Sets how often the reports are requested. If use_queries is True hz must be greather then 0. In this case each time a Query message is sent to get a report. If use_queries is False an event is created to get Reports. In this case 0 disables the rate and an event of type on_change will be created.",
+		"Default: 0.01");
 	cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
 	cfg.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
-	cfg.param("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo, true, false);
-	cfg.param("hz", p_hz, p_hz, false, false);
-	p_pub_costmap = cfg.advertise<nav_msgs::OccupancyGrid>("costmap", 1, true);
-	Slave &slave = Slave::get_instance(*(jausRouter->getJausAddress()));
-	slave.add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 255);
+	cfg.param("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo, true);
+	cfg.param("hz", p_hz, p_hz, false);
+	p_pub_costmap = cfg.create_publisher<nav_msgs::msg::OccupancyGrid>("costmap", 1);
+	auto slave = Slave::get_instance(cmp);
+	slave->add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 255);
 }
 
 void CostMap2DClient_ReceiveFSM::control_allowed(std::string service_uri, JausAddress component, unsigned char authority)
@@ -90,7 +114,7 @@ void CostMap2DClient_ReceiveFSM::control_allowed(std::string service_uri, JausAd
 		p_has_access = true;
 		p_remote_addr = component;
 	} else {
-		ROS_WARN_STREAM("[CostMap2DClient] unexpected control allowed for " << service_uri << " received, ignored!");
+		RCLCPP_WARN(logger, "unexpected control allowed for %s received, ignored!", service_uri.c_str());
 	}
 }
 
@@ -109,13 +133,15 @@ void CostMap2DClient_ReceiveFSM::create_events(std::string service_uri, JausAddr
 {
 	if (by_query) {
 		if (p_hz > 0) {
-			ROS_INFO_NAMED("CostMap2DClient", "create QUERY timer to get costmap2D from %s", component.str().c_str());
-			p_query_timer = p_nh.createTimer(ros::Duration(1.0 / p_hz), &CostMap2DClient_ReceiveFSM::pQueryCallback, this);
+			p_query_timer.stop();
+			RCLCPP_INFO(logger, "create QUERY timer to get costmap2D from %s", component.str().c_str());
+			p_query_timer.set_rate(p_hz);
+			p_query_timer.start();
 		} else {
-			ROS_WARN_NAMED("CostMap2DClient", "invalid hz %.2f for QUERY timer to get costmap2D from %s", p_hz, component.str().c_str());
+			RCLCPP_WARN(logger, "invalid hz %.2f for QUERY timer to get costmap2D from %s", p_hz, component.str().c_str());
 		}
 	} else {
-		ROS_INFO_NAMED("CostMap2DClient", "create EVENT to get costmap2D from %s", component.str().c_str());
+		RCLCPP_INFO(logger, "create EVENT to get costmap2D from %s", component.str().c_str());
 		pEventsClient_ReceiveFSM->create_event(*this, component, p_query_costmap2d_msg, p_hz);
 	}
 }
@@ -125,12 +151,12 @@ void CostMap2DClient_ReceiveFSM::cancel_events(std::string service_uri, JausAddr
 	if (by_query) {
 		p_query_timer.stop();
 	} else {
-		ROS_INFO_NAMED("CostMap2DClient", "cancel EVENT for costmap2D by %s", component.str().c_str());
+		RCLCPP_INFO(logger, "cancel EVENT for costmap2D by %s", component.str().c_str());
 		pEventsClient_ReceiveFSM->cancel_event(*this, component, p_query_costmap2d_msg);
 	}
 }
 
-void CostMap2DClient_ReceiveFSM::pQueryCallback(const ros::TimerEvent& event)
+void CostMap2DClient_ReceiveFSM::pQueryCallback()
 {
 	if (p_remote_addr.get() != 0) {
 		sendJausMessage(p_query_costmap2d_msg, p_remote_addr);
@@ -150,14 +176,13 @@ void CostMap2DClient_ReceiveFSM::event(JausAddress sender, unsigned short query_
 
 void CostMap2DClient_ReceiveFSM::handleAddNoGoZoneResponseAction(AddNoGoZoneResponse msg, Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	ROS_WARN("CostMap2DClient: handleAddNoGoZoneResponseAction not implemented yet!");
+	RCLCPP_WARN(logger, "handleAddNoGoZoneResponseAction not implemented yet!");
 }
 
 void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg, Receive::Body::ReceiveRec transportData)
 {
 	try {
-		nav_msgs::OccupancyGrid ros_msg;
+		auto ros_msg = nav_msgs::msg::OccupancyGrid();
 		ReportCostMap2D::Body::CostMap2DSeq::CostMap2DRec *map_size = msg.getBody()->getCostMap2DSeq()->getCostMap2DRec();
 		ReportCostMap2D::Body::CostMap2DSeq::CostMap2DPoseVar *map_pose = msg.getBody()->getCostMap2DSeq()->getCostMap2DPoseVar();
 		ReportCostMap2D::Body::CostMap2DSeq::CostMap2DDataVar *map_data = msg.getBody()->getCostMap2DSeq()->getCostMap2DDataVar();
@@ -174,11 +199,11 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 		q.setRPY(0, 0, yaw);
 		double x_center = pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterX());
 		double y_center = pround(map_pose->getCostMap2DLocalPoseRec()->getMapCenterY());
-		ROS_DEBUG_NAMED("CostMap2DClient", "map center %.2f, %.2f, yaw: %.2f", x_center, y_center, yaw);
+		RCLCPP_DEBUG(logger, "map center %.2f, %.2f, yaw: %.2f", x_center, y_center, yaw);
 		tf2::Vector3 r(x_center, y_center, 0.0);
 		tf2::Transform transform(q, r);
-		geometry_msgs::TransformStamped tf_msg;
-		tf_msg.header.stamp = ros::Time::now();
+		auto tf_msg = geometry_msgs::msg::TransformStamped();
+		tf_msg.header.stamp = cmp->now();
 		if (p_send_inverse_trafo) {
 			tf2::Transform inverse = transform.inverse();
 			tf_msg.transform.translation.x = inverse.getOrigin().getX();
@@ -203,12 +228,12 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 		}
 		if (! tf_msg.child_frame_id.empty() && !tf_msg.header.frame_id.empty()) {
 			p_tf_broadcaster.sendTransform(tf_msg);
-			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", tf_msg.header.frame_id.c_str(), tf_msg.child_frame_id.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
+			RCLCPP_DEBUG(logger, "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", tf_msg.header.frame_id.c_str(), tf_msg.child_frame_id.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nanosec);
 		}
 
 		// set the origin of the map:
 		// in ROS the origin is the cell in (0,0) -> since in IOP the origin is the middle of the map, move the origin
-		ros_msg.header.stamp = ros::Time::now();
+		ros_msg.header.stamp = cmp->now();
 		ros_msg.header.frame_id = this->p_tf_frame_costmap;
 		double xk = ros_msg.info.width;
 		double yk = ros_msg.info.height;
@@ -243,22 +268,21 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 					}
 				}
 			} else {
-				ROS_WARN("wrong field value (0 expected): %d", map_data->getFieldValue());
+				RCLCPP_WARN(logger, "wrong field value (0 expected): %d", map_data->getFieldValue());
 			}
 		} else {
-			ROS_WARN("defined size %lu != data size %d", ros_msg.data.size(), map_data->getCostDataList()->getNumberOfElements());
+			RCLCPP_WARN(logger, "defined size %lu != data size %d", ros_msg.data.size(), map_data->getCostDataList()->getNumberOfElements());
 		}
-		p_pub_costmap.publish(ros_msg);
+		p_pub_costmap->publish(ros_msg);
 	} catch (std::exception &e) {
-		ROS_WARN("CostMap2DClient: can not publish tf or costmap: %s", e.what());
+		RCLCPP_WARN(logger, "can not publish tf or costmap: %s", e.what());
 	}
 }
 
 void CostMap2DClient_ReceiveFSM::handleReportNoGoZonesAction(ReportNoGoZones msg, Receive::Body::ReceiveRec transportData)
 {
-	/// Insert User Code HERE
-	ROS_WARN("CostMap2DClient: handleReportNoGoZonesAction not implemented yet!");
+	RCLCPP_WARN(logger, "handleReportNoGoZonesAction not implemented yet!");
 }
 
 
-};
+}

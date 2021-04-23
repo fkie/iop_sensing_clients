@@ -3,7 +3,7 @@ This package is part of [ROS/IOP Bridge](https://github.com/fkie/iop_core/blob/m
 
 ## _fkie_iop_client_path_reporter:_ PathReporterClient
 
-Request historical and planned paths from [PathReporter](https://github.com/fkie/iop_sensing/blob/master/fkie_iop_path_reporter/README.md) and publish these to ROS as ```nav_msgs::Path``` and ```geographic_msgs::GeoPath```.
+Request historical and planned paths from [PathReporter](https://github.com/fkie/iop_sensing/blob/master/fkie_iop_path_reporter/README.md) and publish these to ROS as ```nav_msgs::msg::Path``` and ```geographic_msgs::msg::GeoPath```.
 
 #### Parameter:
 
@@ -22,14 +22,14 @@ _hz (int_ Default: 0.0)
 
 #### Publisher:
 
-_historical_global_path (nav_msgs::Path)_
-_historical_global_geopath (geographic_msgs::GeoPath)_
+_historical_global_path (nav_msgs::msg::Path)_
+_historical_global_geopath (geographic_msgs::msg::GeoPath)_
 
 > Histprical path.
 
-_planned_global_path (nav_msgs::Path)_
-_planned_global_geopath (geographic_msgs::GeoPath)_
-_planned_local_path (nav_msgs::Path)_
+_planned_global_path (nav_msgs::msg::Path)_
+_planned_global_geopath (geographic_msgs::msg::GeoPath)_
+_planned_local_path (nav_msgs::msg::Path)_
 > Planned path.
 
 #### Subscriber:

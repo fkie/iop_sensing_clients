@@ -38,17 +38,17 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_core_EventsClient/EventsClient_ReceiveFSM.h"
 
 
-#include <ros/ros.h>
-#include <nav_msgs/Path.h>
-#include <geographic_msgs/GeoPath.h>
-#include <geographic_msgs/GeoPoseStamped.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/Quaternion.h>
+#include <nav_msgs/msg/path.hpp>
+#include <geographic_msgs/msg/geo_path.hpp>
+#include <geographic_msgs/msg/geo_pose_stamped.hpp>
 
 #include <fkie_iop_ocu_slavelib/SlaveHandlerInterface.h>
 #include <fkie_iop_events/EventHandlerInterface.h>
 
 #include "PathReporterClient_ReceiveFSM_sm.h"
+#include <rclcpp/rclcpp.hpp>
+#include <fkie_iop_component/iop_component.hpp>
+
 
 namespace urn_jaus_jss_iop_PathReporterClient
 {
@@ -61,11 +61,12 @@ const int PLANNED_LOCAL_PATH = 3;
 class DllExport PathReporterClient_ReceiveFSM : public JTS::StateMachine, public iop::ocu::SlaveHandlerInterface, public iop::EventHandlerInterface
 {
 public:
-	PathReporterClient_ReceiveFSM(urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM);
+	PathReporterClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM);
 	virtual ~PathReporterClient_ReceiveFSM();
 
 	/// Handle notifications on parent state changes
 	virtual void setupNotifications();
+	virtual void setupIopConfiguration();
 
 	/// Action Methods
 	virtual void handleReportPathAction(ReportPath msg, Receive::Body::ReceiveRec transportData);
@@ -89,21 +90,23 @@ public:
 
 protected:
 
-    /// References to parent FSMs
-	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
+	/// References to parent FSMs
 	urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
+	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
+
+	std::shared_ptr<iop::Component> cmp;
+	rclcpp::Logger logger;
 
 	std::string p_tf_frame_world;
 	std::string p_tf_frame_odom;
 
-	ros::NodeHandle p_nh;
-	ros::Timer p_query_timer;
-	ros::Publisher p_pub_planned_local_path;
-	ros::Publisher p_pub_planned_global_path;
-	ros::Publisher p_pub_historical_global_path;
-	ros::Publisher p_pub_planned_global_geopath;
-	ros::Publisher p_pub_historical_global_geopath;
-	ros::Publisher p_pub_historical_local_path;
+	iop::Timer p_query_timer;
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr p_pub_planned_local_path;
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr p_pub_planned_global_path;
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr p_pub_historical_global_path;
+	rclcpp::Publisher<geographic_msgs::msg::GeoPath>::SharedPtr p_pub_planned_global_geopath;
+	rclcpp::Publisher<geographic_msgs::msg::GeoPath>::SharedPtr p_pub_historical_global_geopath;
+	rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr p_pub_historical_local_path;
 	bool p_by_query;
 	int p_query_state;
 	double p_hz;
@@ -113,7 +116,7 @@ protected:
 	std::set<int> p_available_paths;
 	JausAddress p_remote_addr;
 	bool p_has_access;
-	void pQueryCallback(const ros::TimerEvent& event);
+	void pQueryCallback();
 
 	void pPublishHistoricalGlobalPath(ReportPath::Body::PathVar::HistoricalGlobalPath* path);
 	void pPublishHistoricalLocalPath(ReportPath::Body::PathVar::HistoricalLocalPath* path);
@@ -122,6 +125,6 @@ protected:
 
 };
 
-};
+}
 
 #endif // PATHREPORTERCLIENT_RECEIVEFSM_H
