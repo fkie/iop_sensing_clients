@@ -26,7 +26,6 @@ along with this program; or you can read the full license at
 #include "urn_jaus_jss_iop_PathReporterClient/PathReporterClient_ReceiveFSM.h"
 #include <fkie_iop_component/iop_config.hpp>
 #include <fkie_iop_component/gps_conversions.h>
-#include <fkie_iop_ocu_slavelib/Slave.h>
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
@@ -43,8 +42,8 @@ namespace urn_jaus_jss_iop_PathReporterClient
 
 
 PathReporterClient_ReceiveFSM::PathReporterClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM)
-: logger(cmp->get_logger().get_child("PathReporterClient")),
-  p_query_timer(std::chrono::milliseconds(1000), std::bind(&PathReporterClient_ReceiveFSM::pQueryCallback, this), false)
+: SlaveHandlerInterface(cmp, "PathReporterClient", 1.0),
+  logger(cmp->get_logger().get_child("PathReporterClient"))
 {
 
 	/*
@@ -59,7 +58,6 @@ PathReporterClient_ReceiveFSM::PathReporterClient_ReceiveFSM(std::shared_ptr<iop
 	this->cmp = cmp;
 	p_tf_frame_world = "/world";
 	p_tf_frame_odom = "odom";
-	p_has_access = false;
 	p_query_state = 0;
 	p_by_query = false;
 	p_hz = 1.0;
@@ -69,7 +67,6 @@ PathReporterClient_ReceiveFSM::PathReporterClient_ReceiveFSM(std::shared_ptr<iop
 
 PathReporterClient_ReceiveFSM::~PathReporterClient_ReceiveFSM()
 {
-	p_query_timer.stop();
 	delete context;
 }
 
@@ -108,88 +105,67 @@ void PathReporterClient_ReceiveFSM::setupIopConfiguration()
 //	p_pub_historical_global_path = cfg.create_publisher<nav_msgs::msg::Path>("historical_global_path", 10);
 	p_pub_planned_global_geopath = cfg.create_publisher<geographic_msgs::msg::GeoPath>("planned_global_geopath", 10);
 //	p_pub_historical_global_geopath = cfg.create_publisher<geographic_msgs::msg::GeoPath>("historical_global_geopath", 10);
-	auto slave = Slave::get_instance(cmp);
-	slave->add_supported_service(*this, "urn:jaus:jss:iop:PathReporter", 1, 255);
+	// initialize the control layer, which handles the access control staff
+	this->set_rate(p_hz);
+	this->set_supported_service(*this, "urn:jaus:jss:iop:PathReporter", 1, 255);
+	this->set_event_name("PathReporter capabilities");
+	this->set_query_before_event(true, 1.0);
 }
 
-void PathReporterClient_ReceiveFSM::control_allowed(std::string service_uri, JausAddress component, unsigned char authority)
+void PathReporterClient_ReceiveFSM::register_events(JausAddress remote_addr, double hz)
 {
-	if (service_uri.compare("urn:jaus:jss:iop:PathReporter") == 0) {
-		p_remote_addr = component;
-		p_has_access = true;
+	p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
+	pEventsClient_ReceiveFSM->create_event(*this, remote_addr, p_query_path, 0.0);
+}
+
+void PathReporterClient_ReceiveFSM::unregister_events(JausAddress remote_addr)
+{
+	pEventsClient_ReceiveFSM->cancel_event(*this, remote_addr, p_query_path);
+	stop_query(remote_addr);
+}
+
+void PathReporterClient_ReceiveFSM::send_query(JausAddress remote_addr)
+{
+	if (p_query_state == 0) {
+		sendJausMessage(p_query_cap, remote_addr);
 	} else {
-		RCLCPP_WARN(logger, "unexpected control allowed for %s received, ignored!", service_uri.c_str());
-	}
-}
-
-void PathReporterClient_ReceiveFSM::enable_monitoring_only(std::string service_uri, JausAddress component)
-{
-	p_remote_addr = component;
-}
-
-void PathReporterClient_ReceiveFSM::access_deactivated(std::string service_uri, JausAddress component)
-{
-	p_has_access = false;
-	p_remote_addr = JausAddress(0);
-}
-
-void PathReporterClient_ReceiveFSM::create_events(std::string service_uri, JausAddress component, bool by_query)
-{
-	p_by_query = by_query;
-	RCLCPP_DEBUG(logger, "get capabilities from PathReporter @ %s", p_remote_addr.str().c_str());
-	sendJausMessage(p_query_cap, component);
-	p_query_timer.set_rate(0.25);
-	p_query_timer.start();
-}
-
-void PathReporterClient_ReceiveFSM::cancel_events(std::string service_uri, JausAddress component, bool by_query)
-{
-	if (p_by_query) {
-		p_query_timer.stop();
-	} else {
-		RCLCPP_INFO(logger, "cancel EVENT for path for PathReporter @ %s", component.str().c_str());
-		pEventsClient_ReceiveFSM->cancel_event(*this, component, p_query_path);
-	}
-	p_query_state = 0;
-	p_available_paths.clear();
-}
-
-void PathReporterClient_ReceiveFSM::pQueryCallback()
-{
-	if (p_remote_addr.get() != 0) {
-		if (p_query_state == 0) {
-			sendJausMessage(p_query_cap, p_remote_addr);
-		} else {
-			if (p_available_paths.find(HISTORICAL_GLOBAL_PATH) != p_available_paths.end()) {
-				RCLCPP_DEBUG(logger, "send query for HISTORICAL_GLOBAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
-				// request HistoricalGlobalPath
-				QueryPath query_path;
-				query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_GLOBAL_PATH);
-				sendJausMessage(query_path, p_remote_addr);
-			}
-			if (p_by_query && p_available_paths.find(HISTORICAL_LOCAL_PATH) != p_available_paths.end()) {
-				RCLCPP_DEBUG(logger, "send query for HISTORICAL_LOCAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
-				// request HistoricalLocalPath
-				QueryPath query_path;
-				query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
-				sendJausMessage(query_path, p_remote_addr);
-			}
-			if (p_available_paths.find(PLANNED_GLOBAL_PATH) != p_available_paths.end()) {
-				// request PlannedGlobalPath
-				RCLCPP_DEBUG(logger, "send query for PLANNED_GLOBAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
-				QueryPath query_path;
-				query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
-				sendJausMessage(query_path, p_remote_addr);
-			}
-			if (p_available_paths.find(PLANNED_LOCAL_PATH) != p_available_paths.end()) {
-				RCLCPP_DEBUG(logger, "send query for PLANNED_LOCAL_PATH to PathReporter @ %s", p_remote_addr.str().c_str());
-				// request PlannedLocalPath
-				QueryPath query_path;
-				query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_LOCAL_PATH);
-				sendJausMessage(query_path, p_remote_addr);
-			}
+		if (p_available_paths.find(HISTORICAL_GLOBAL_PATH) != p_available_paths.end()) {
+			RCLCPP_DEBUG(logger, "send query for HISTORICAL_GLOBAL_PATH to PathReporter @ %s", remote_addr.str().c_str());
+			// request HistoricalGlobalPath
+			QueryPath query_path;
+			query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_GLOBAL_PATH);
+			sendJausMessage(query_path, remote_addr);
+		}
+		if (p_by_query && p_available_paths.find(HISTORICAL_LOCAL_PATH) != p_available_paths.end()) {
+			RCLCPP_DEBUG(logger, "send query for HISTORICAL_LOCAL_PATH to PathReporter @ %s", remote_addr.str().c_str());
+			// request HistoricalLocalPath
+			QueryPath query_path;
+			query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
+			sendJausMessage(query_path, remote_addr);
+		}
+		if (p_available_paths.find(PLANNED_GLOBAL_PATH) != p_available_paths.end()) {
+			// request PlannedGlobalPath
+			RCLCPP_DEBUG(logger, "send query for PLANNED_GLOBAL_PATH to PathReporter @ %s", remote_addr.str().c_str());
+			QueryPath query_path;
+			query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_GLOBAL_PATH);
+			sendJausMessage(query_path, remote_addr);
+		}
+		if (p_available_paths.find(PLANNED_LOCAL_PATH) != p_available_paths.end()) {
+			RCLCPP_DEBUG(logger, "send query for PLANNED_LOCAL_PATH to PathReporter @ %s", remote_addr.str().c_str());
+			// request PlannedLocalPath
+			QueryPath query_path;
+			query_path.getBody()->getQueryPathRec()->setPathType(PLANNED_LOCAL_PATH);
+			sendJausMessage(query_path, remote_addr);
 		}
 	}
+}
+
+void PathReporterClient_ReceiveFSM::stop_query(JausAddress remote_addr)
+{
+	p_query_state = 0;
+	p_available_paths.clear();
+	this->set_event_name("PathReporter capabilities");
+	this->set_query_before_event(true, 1.0);
 }
 
 void PathReporterClient_ReceiveFSM::event(JausAddress sender, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata)
@@ -251,28 +227,14 @@ void PathReporterClient_ReceiveFSM::handleReportPathReporterCapabilitiesAction(R
 	p_available_paths.clear();
 	for (unsigned int i = 0; i < cap_list->getNumberOfElements(); i++) {
 		// get available path types
-		RCLCPP_INFO(logger, "add path type %d for PathReporter @ %s", (int)cap_list->getElement(i)->getPathType(), p_remote_addr.str().c_str());
+		RCLCPP_INFO(logger, "add path type %d for PathReporter @ %s", (int)cap_list->getElement(i)->getPathType(), sender.str().c_str());
 		p_available_paths.insert(cap_list->getElement(i)->getPathType());
 		// TODO: check for other specifications, e.g. target resolution
 	}
 	p_query_state = 1;
-	if (p_remote_addr.get() != 0) {
-		if (p_by_query) {
-			if (p_hz > 0) {
-				p_query_timer.stop();
-				RCLCPP_INFO(logger, "create QUERY timer to get path from PathReporter @ %s", p_remote_addr.str().c_str());
-				p_query_timer.set_rate(p_hz);
-				p_query_timer.start();
-			} else {
-				RCLCPP_WARN(logger, "invalid hz %.2f for QUERY timer to get path from PathReporter @ %s", p_hz, p_remote_addr.str().c_str());
-			}
-		} else {
-			RCLCPP_INFO(logger, "create EVENT to get path from PathReporter @ %s", p_remote_addr.str().c_str());
-			// there is no way to request all paths, so we decide for historical local path. Other paths are requested by query @0.3Hz
-			p_query_path.getBody()->getQueryPathRec()->setPathType(HISTORICAL_LOCAL_PATH);
-			pEventsClient_ReceiveFSM->create_event(*this, p_remote_addr, p_query_path, 0.0);
-		}
-	}
+	// force event for request sensor data
+	this->set_event_name("path");
+	this->set_query_before_event(false);
 }
 
 void PathReporterClient_ReceiveFSM::pPublishHistoricalGlobalPath(ReportPath::Body::PathVar::HistoricalGlobalPath* path)

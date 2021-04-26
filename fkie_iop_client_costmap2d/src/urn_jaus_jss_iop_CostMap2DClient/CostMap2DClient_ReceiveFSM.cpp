@@ -27,8 +27,6 @@ along with this program; or you can read the full license at
 #include <tf2/LinearMath/Transform.h>
 
 #include <fkie_iop_builder/util.h>
-#include <fkie_iop_ocu_slavelib/Slave.h>
-
 
 
 using namespace JTS;
@@ -40,8 +38,8 @@ namespace urn_jaus_jss_iop_CostMap2DClient
 
 
 CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM)
-: logger(cmp->get_logger().get_child("CostMap2DClient")),
-  p_query_timer(std::chrono::milliseconds(10000), std::bind(&CostMap2DClient_ReceiveFSM::pQueryCallback, this), false),
+: SlaveHandlerInterface(cmp, "CostMap2DClient", 10.0),
+  logger(cmp->get_logger().get_child("CostMap2DClient")),
   p_tf_broadcaster(cmp)
 {
 
@@ -59,7 +57,6 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(std::shared_ptr<iop::Comp
 	p_tf_frame_costmap = "costmap";
 	p_tf_frame_odom = "odom";
 	p_send_inverse_trafo = false;
-	p_has_access = false;
 	p_hz = 0.01;
 }
 
@@ -104,63 +101,30 @@ void CostMap2DClient_ReceiveFSM::setupIopConfiguration()
 	cfg.param("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo, true);
 	cfg.param("hz", p_hz, p_hz, false);
 	p_pub_costmap = cfg.create_publisher<nav_msgs::msg::OccupancyGrid>("costmap", 1);
-	auto slave = Slave::get_instance(cmp);
-	slave->add_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 255);
+	// initialize the control layer, which handles the access control staff
+	this->set_rate(p_hz);
+	this->set_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 255);
+	this->set_event_name("velocity state");
 }
 
-void CostMap2DClient_ReceiveFSM::control_allowed(std::string service_uri, JausAddress component, unsigned char authority)
+void CostMap2DClient_ReceiveFSM::register_events(JausAddress remote_addr, double hz)
 {
-	if (service_uri.compare("urn:jaus:jss:iop:CostMap2D") == 0) {
-		p_has_access = true;
-		p_remote_addr = component;
-	} else {
-		RCLCPP_WARN(logger, "unexpected control allowed for %s received, ignored!", service_uri.c_str());
-	}
+	pEventsClient_ReceiveFSM->create_event(*this, remote_addr, p_query_costmap2d_msg, p_hz);
 }
 
-void CostMap2DClient_ReceiveFSM::enable_monitoring_only(std::string service_uri, JausAddress component)
+void CostMap2DClient_ReceiveFSM::unregister_events(JausAddress remote_addr)
 {
-	p_remote_addr = component;
+	pEventsClient_ReceiveFSM->cancel_event(*this, remote_addr, p_query_costmap2d_msg);
+	stop_query(remote_addr);
 }
 
-void CostMap2DClient_ReceiveFSM::access_deactivated(std::string service_uri, JausAddress component)
+void CostMap2DClient_ReceiveFSM::send_query(JausAddress remote_addr)
 {
-	p_remote_addr = JausAddress(0);
-	p_has_access = false;
+	sendJausMessage(p_query_costmap2d_msg, remote_addr);
 }
 
-void CostMap2DClient_ReceiveFSM::create_events(std::string service_uri, JausAddress component, bool by_query)
+void CostMap2DClient_ReceiveFSM::stop_query(JausAddress remote_addr)
 {
-	if (by_query) {
-		if (p_hz > 0) {
-			p_query_timer.stop();
-			RCLCPP_INFO(logger, "create QUERY timer to get costmap2D from %s", component.str().c_str());
-			p_query_timer.set_rate(p_hz);
-			p_query_timer.start();
-		} else {
-			RCLCPP_WARN(logger, "invalid hz %.2f for QUERY timer to get costmap2D from %s", p_hz, component.str().c_str());
-		}
-	} else {
-		RCLCPP_INFO(logger, "create EVENT to get costmap2D from %s", component.str().c_str());
-		pEventsClient_ReceiveFSM->create_event(*this, component, p_query_costmap2d_msg, p_hz);
-	}
-}
-
-void CostMap2DClient_ReceiveFSM::cancel_events(std::string service_uri, JausAddress component, bool by_query)
-{
-	if (by_query) {
-		p_query_timer.stop();
-	} else {
-		RCLCPP_INFO(logger, "cancel EVENT for costmap2D by %s", component.str().c_str());
-		pEventsClient_ReceiveFSM->cancel_event(*this, component, p_query_costmap2d_msg);
-	}
-}
-
-void CostMap2DClient_ReceiveFSM::pQueryCallback()
-{
-	if (p_remote_addr.get() != 0) {
-		sendJausMessage(p_query_costmap2d_msg, p_remote_addr);
-	}
 }
 
 void CostMap2DClient_ReceiveFSM::event(JausAddress sender, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata)

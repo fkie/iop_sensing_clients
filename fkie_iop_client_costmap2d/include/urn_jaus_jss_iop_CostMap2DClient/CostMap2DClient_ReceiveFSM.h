@@ -74,11 +74,10 @@ public:
 	void event(JausAddress reporter, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata);
 
 	/// SlaveHandlerInterface Methods
-	void control_allowed(std::string service_uri, JausAddress component, unsigned char authority);
-	void enable_monitoring_only(std::string service_uri, JausAddress component);
-	void access_deactivated(std::string service_uri, JausAddress component);
-	void create_events(std::string service_uri, JausAddress component, bool by_query=false);
-	void cancel_events(std::string service_uri, JausAddress component, bool by_query=false);
+	void register_events(JausAddress remote_addr, double hz);
+	void unregister_events(JausAddress remote_addr);
+	void send_query(JausAddress remote_addr);
+	void stop_query(JausAddress remote_addr);
 
 	CostMap2DClient_ReceiveFSMContext *context;
 
@@ -97,15 +96,10 @@ protected:
 	bool p_send_inverse_trafo;
 	double p_hz;
 
-	iop::Timer p_query_timer;
 	tf2_ros::TransformBroadcaster p_tf_broadcaster;
 	rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr p_pub_costmap;
 
-	JausAddress p_remote_addr;
 	urn_jaus_jss_iop_CostMap2DClient::QueryCostMap2D p_query_costmap2d_msg;
-	bool p_has_access;
-
-	void pQueryCallback();
 
 };
 
