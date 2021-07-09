@@ -18,7 +18,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(fkie_iop_ocu_slavelib REQUIRED)
 find_package(geographic_msgs REQUIRED)
-find_package(sensor_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 
@@ -55,7 +55,7 @@ iop_code_generator(
 set(dependencies
   fkie_iop_ocu_slavelib
   geographic_msgs
-  sensor_msgs
+  nav_msgs
   tf2
   tf2_ros
 )

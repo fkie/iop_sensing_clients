@@ -7,7 +7,7 @@ Request historical and planned paths from [PathReporter](https://github.com/fkie
 
 #### Parameter:
 
-_tf_frame_world (str_, Default: "/world")
+_tf_frame_world (str_, Default: "world")
 
 > TF frame id used in ROS for global coordinates.
 

@@ -29,8 +29,6 @@ along with this program; or you can read the full license at
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
-#include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <sensor_msgs/msg/imu.hpp>
 
 
 using namespace JTS;
@@ -56,7 +54,7 @@ PathReporterClient_ReceiveFSM::PathReporterClient_ReceiveFSM(std::shared_ptr<iop
 	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
 	this->cmp = cmp;
-	p_tf_frame_world = "/world";
+	p_tf_frame_world = "world";
 	p_tf_frame_odom = "odom";
 	p_query_state = 0;
 	p_by_query = false;
@@ -86,7 +84,7 @@ void PathReporterClient_ReceiveFSM::setupIopConfiguration()
 	cfg.declare_param<std::string>("tf_frame_world", p_tf_frame_world, true,
 		rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
 		"TF frame id used in ROS for global coordinates.",
-		"Default: '/world'");
+		"Default: 'world'");
 	cfg.declare_param<std::string>("tf_frame_odom", p_tf_frame_odom, true,
 		rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
 		"TF frame id of the odometry.",
