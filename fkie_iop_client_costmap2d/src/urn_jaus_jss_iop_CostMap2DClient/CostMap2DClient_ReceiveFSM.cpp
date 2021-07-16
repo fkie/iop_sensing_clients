@@ -104,7 +104,7 @@ void CostMap2DClient_ReceiveFSM::setupIopConfiguration()
 	// initialize the control layer, which handles the access control staff
 	this->set_rate(p_hz);
 	this->set_supported_service(*this, "urn:jaus:jss:iop:CostMap2D", 1, 255);
-	this->set_event_name("velocity state");
+	this->set_event_name("costmap 2d");
 }
 
 void CostMap2DClient_ReceiveFSM::register_events(JausAddress remote_addr, double hz)
