@@ -88,7 +88,7 @@ protected:
 	urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM;
 
 	std::string p_tf_frame_costmap;
-	std::string p_tf_frame_odom;
+	std::string p_tf_frame_robot;
 	bool p_send_inverse_trafo;
 	double p_hz;
 

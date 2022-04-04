@@ -55,7 +55,7 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(urn_jaus_jss_core_Transpo
 	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
 	this->pAccessControlClient_ReceiveFSM = pAccessControlClient_ReceiveFSM;
 	p_tf_frame_costmap = "costmap";
-	p_tf_frame_odom = "odom";
+	p_tf_frame_robot = "base_link";
 	p_send_inverse_trafo = false;
 	p_has_access = false;
 	p_hz = 0.0;
@@ -75,7 +75,7 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 	registerNotification("Receiving_Ready", pAccessControlClient_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControlClient_ReceiveFSM_Receiving_Ready", "CostMap2DClient_ReceiveFSM");
 	registerNotification("Receiving", pAccessControlClient_ReceiveFSM->getHandler(), "InternalStateChange_To_AccessControlClient_ReceiveFSM_Receiving", "CostMap2DClient_ReceiveFSM");
 	iop::Config cfg("~CostMap2DClient");
-	cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
+	cfg.param("tf_frame_robot", p_tf_frame_robot, p_tf_frame_robot);
 	cfg.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
 	cfg.param("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo, true, false);
 	cfg.param("hz", p_hz, p_hz, false, false);
@@ -167,8 +167,22 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 		ros_msg.info.resolution = map_size->getMapWidth() / (double)ros_msg.info.width;
 		ros_msg.data.resize(ros_msg.info.width * ros_msg.info.height);
 
+		// set the origin of the map:
+		// in ROS the origin is the cell in (0,0) -> since in IOP the origin is the middle of the map, move the origin
+		ros_msg.header.stamp = ros::Time::now();
+		ros_msg.header.frame_id = this->p_tf_frame_costmap;
+		double xk = ros_msg.info.width;
+		double yk = ros_msg.info.height;
+		ros_msg.info.origin.position.x = - xk * ros_msg.info.resolution / 2.0;
+		ros_msg.info.origin.position.y = - yk * ros_msg.info.resolution / 2.0;
+		ros_msg.info.origin.position.z = 0.0;
+		ros_msg.info.origin.orientation.x = 0;
+		ros_msg.info.origin.orientation.y = 0;
+		ros_msg.info.origin.orientation.z = 0;
+		ros_msg.info.origin.orientation.w = 1;
+
 		// TODO: adde check for Global Coordinate
-		// we have to send a transform from odometry to the origin of the map
+		// we have to send a transform from base_link to the origin of the map
 		tf2::Quaternion q;
 		double yaw = pround(map_pose->getCostMap2DLocalPoseRec()->getMapRotation());
 		q.setRPY(0, 0, yaw);
@@ -189,7 +203,7 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 			tf_msg.transform.rotation.z = inverse.getRotation().getZ();
 			tf_msg.transform.rotation.w = inverse.getRotation().getW();
 			tf_msg.child_frame_id = this->p_tf_frame_costmap;
-			tf_msg.header.frame_id = this->p_tf_frame_odom;
+			tf_msg.header.frame_id = this->p_tf_frame_robot;
 		} else {
 			tf_msg.transform.translation.x = transform.getOrigin().getX();
 			tf_msg.transform.translation.y = transform.getOrigin().getY();
@@ -198,27 +212,13 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 			tf_msg.transform.rotation.y = transform.getRotation().getY();
 			tf_msg.transform.rotation.z = transform.getRotation().getZ();
 			tf_msg.transform.rotation.w = transform.getRotation().getW();
-			tf_msg.header.frame_id = this->p_tf_frame_odom;
+			tf_msg.header.frame_id = this->p_tf_frame_robot;
 			tf_msg.child_frame_id = this->p_tf_frame_costmap;
 		}
 		if (! tf_msg.child_frame_id.empty() && !tf_msg.header.frame_id.empty()) {
 			p_tf_broadcaster.sendTransform(tf_msg);
 			ROS_DEBUG_NAMED("CostMap2DClient", "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", tf_msg.header.frame_id.c_str(), tf_msg.child_frame_id.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nsec);
 		}
-
-		// set the origin of the map:
-		// in ROS the origin is the cell in (0,0) -> since in IOP the origin is the middle of the map, move the origin
-		ros_msg.header.stamp = ros::Time::now();
-		ros_msg.header.frame_id = this->p_tf_frame_costmap;
-		double xk = ros_msg.info.width;
-		double yk = ros_msg.info.height;
-		ros_msg.info.origin.position.x = - xk * ros_msg.info.resolution / 2.0;
-		ros_msg.info.origin.position.y = - yk * ros_msg.info.resolution / 2.0;
-		ros_msg.info.origin.position.z = 0.0;
-		ros_msg.info.origin.orientation.x = 0;
-		ros_msg.info.origin.orientation.y = 0;
-		ros_msg.info.origin.orientation.z = 0;
-		ros_msg.info.origin.orientation.w = 1;
 
 		// set map data
 		// We have to flip around the y axis, y for IOP costmap starts at the top and y for map at the bottom
