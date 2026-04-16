@@ -41,11 +41,13 @@ along with this program; or you can read the full license at
 
 #include "CostMap2DClient_ReceiveFSM_sm.h"
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp/node_interfaces/node_base_interface.hpp>
+#include <rclcpp/node_interfaces/node_topics_interface.hpp>
 #include <fkie_iop_component/iop_component.hpp>
 #include <fkie_iop_ocu_slavelib/SlaveHandlerInterface.h>
 #include <fkie_iop_events/EventHandlerInterface.h>
 #include <nav_msgs/msg/occupancy_grid.hpp>
-#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.hpp>
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
 
@@ -96,7 +98,7 @@ protected:
 	bool p_send_inverse_trafo;
 	double p_hz;
 
-	tf2_ros::TransformBroadcaster p_tf_broadcaster;
+	std::unique_ptr<tf2_ros::TransformBroadcaster> p_tf_broadcaster;
 	rclcpp::Publisher<nav_msgs::msg::OccupancyGrid>::SharedPtr p_pub_costmap;
 
 	urn_jaus_jss_iop_CostMap2DClient::QueryCostMap2D p_query_costmap2d_msg;

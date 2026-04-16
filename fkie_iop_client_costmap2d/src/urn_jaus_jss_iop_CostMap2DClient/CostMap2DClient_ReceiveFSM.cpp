@@ -23,8 +23,8 @@ along with this program; or you can read the full license at
 
 #include "urn_jaus_jss_iop_CostMap2DClient/CostMap2DClient_ReceiveFSM.h"
 #include <fkie_iop_component/iop_config.hpp>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/LinearMath/Transform.h>
+#include <tf2/LinearMath/Quaternion.hpp>
+#include <tf2/LinearMath/Transform.hpp>
 
 #include <fkie_iop_builder/util.h>
 
@@ -39,8 +39,7 @@ namespace urn_jaus_jss_iop_CostMap2DClient
 
 CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_AccessControlClient::AccessControlClient_ReceiveFSM* pAccessControlClient_ReceiveFSM, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM)
 : SlaveHandlerInterface(cmp, "CostMap2DClient", 10.0),
-  logger(cmp->get_logger().get_child("CostMap2DClient")),
-  p_tf_broadcaster(cmp)
+  logger(cmp->get_logger().get_child("CostMap2DClient"))
 {
 
 	/*
@@ -50,6 +49,10 @@ CostMap2DClient_ReceiveFSM::CostMap2DClient_ReceiveFSM(std::shared_ptr<iop::Comp
 	 */
 	context = new CostMap2DClient_ReceiveFSMContext(*this);
 
+	this->p_tf_broadcaster = std::make_unique<tf2_ros::TransformBroadcaster>(
+		cmp->get_node_parameters_interface(),
+		cmp->get_node_topics_interface()
+	);
 	this->pAccessControlClient_ReceiveFSM = pAccessControlClient_ReceiveFSM;
 	this->pEventsClient_ReceiveFSM = pEventsClient_ReceiveFSM;
 	this->pTransport_ReceiveFSM = pTransport_ReceiveFSM;
@@ -191,7 +194,7 @@ void CostMap2DClient_ReceiveFSM::handleReportCostMap2DAction(ReportCostMap2D msg
 			tf_msg.child_frame_id = this->p_tf_frame_costmap;
 		}
 		if (! tf_msg.child_frame_id.empty() && !tf_msg.header.frame_id.empty()) {
-			p_tf_broadcaster.sendTransform(tf_msg);
+			p_tf_broadcaster->sendTransform(tf_msg);
 			RCLCPP_DEBUG(logger, "  tf %s -> %s (%.2f, %.2f), stamp: %d.%d", tf_msg.header.frame_id.c_str(), tf_msg.child_frame_id.c_str(), tf_msg.transform.translation.x, tf_msg.transform.translation.y, tf_msg.header.stamp.sec, tf_msg.header.stamp.nanosec);
 		}
 
