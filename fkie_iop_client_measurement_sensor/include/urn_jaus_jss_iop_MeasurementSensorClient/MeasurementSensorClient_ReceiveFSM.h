@@ -20,74 +20,67 @@ along with this program; or you can read the full license at
 
 /** \author Alexander Tiderko */
 
-
 #ifndef MEASUREMENTSENSORCLIENT_RECEIVEFSM_H
 #define MEASUREMENTSENSORCLIENT_RECEIVEFSM_H
 
-#include "JausUtils.h"
 #include "InternalEvents/InternalEventHandler.h"
-#include "Transport/JausTransport.h"
 #include "JTSStateMachine.h"
-#include "urn_jaus_jss_iop_MeasurementSensorClient/Messages/MessageSet.h"
+#include "JausUtils.h"
+#include "Transport/JausTransport.h"
 #include "urn_jaus_jss_iop_MeasurementSensorClient/InternalEvents/InternalEventsSet.h"
+#include "urn_jaus_jss_iop_MeasurementSensorClient/Messages/MessageSet.h"
 
 #include "InternalEvents/Receive.h"
 #include "InternalEvents/Send.h"
 
-#include "urn_jaus_jss_core_Transport/Transport_ReceiveFSM.h"
 #include "urn_jaus_jss_core_EventsClient/EventsClient_ReceiveFSM.h"
+#include "urn_jaus_jss_core_Transport/Transport_ReceiveFSM.h"
 
-#include <fkie_iop_ocu_slavelib/SlaveHandlerInterface.h>
 #include <fkie_iop_events/EventHandlerInterface.h>
 #include <fkie_iop_msgs/msg/measurement.hpp>
+#include <fkie_iop_ocu_slavelib/SlaveHandlerInterface.h>
 
 #include "MeasurementSensorClient_ReceiveFSM_sm.h"
-#include <rclcpp/rclcpp.hpp>
 #include <fkie_iop_component/iop_component.hpp>
+#include <rclcpp/rclcpp.hpp>
 
+namespace urn_jaus_jss_iop_MeasurementSensorClient {
 
-namespace urn_jaus_jss_iop_MeasurementSensorClient
-{
-
-class DllExport MeasurementSensorClient_ReceiveFSM : public JTS::StateMachine, public iop::ocu::SlaveHandlerInterface, public iop::EventHandlerInterface
-{
+class DllExport MeasurementSensorClient_ReceiveFSM : public JTS::StateMachine, public iop::ocu::SlaveHandlerInterface, public iop::EventHandlerInterface {
 public:
-	MeasurementSensorClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM);
-	virtual ~MeasurementSensorClient_ReceiveFSM();
+    MeasurementSensorClient_ReceiveFSM(std::shared_ptr<iop::Component> cmp, urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM, urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM);
+    virtual ~MeasurementSensorClient_ReceiveFSM();
 
-	/// Handle notifications on parent state changes
-	virtual void setupNotifications();
-	virtual void setupIopConfiguration();
+    /// Handle notifications on parent state changes
+    virtual void setupNotifications();
+    virtual void setupIopConfiguration();
 
-	/// Action Methods
-	virtual void handleReportMeasurementAction(ReportMeasurement msg, Receive::Body::ReceiveRec transportData);
+    /// Action Methods
+    virtual void handleReportMeasurementAction(ReportMeasurement msg, Receive::Body::ReceiveRec transportData);
 
+    /// Guard Methods
+    /// EventHandlerInterface Methods
+    void event(JausAddress reporter, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata);
 
-	/// Guard Methods
-	/// EventHandlerInterface Methods
-	void event(JausAddress reporter, unsigned short query_msg_id, unsigned int reportlen, const unsigned char* reportdata);
+    /// SlaveHandlerInterface Methods
+    void register_events(JausAddress remote_addr, double hz);
+    void unregister_events(JausAddress remote_addr);
+    void send_query(JausAddress remote_addr);
+    void stop_query(JausAddress remote_addr);
 
-	/// SlaveHandlerInterface Methods
-	void register_events(JausAddress remote_addr, double hz);
-	void unregister_events(JausAddress remote_addr);
-	void send_query(JausAddress remote_addr);
-	void stop_query(JausAddress remote_addr);
-
-
-	MeasurementSensorClient_ReceiveFSMContext *context;
+    MeasurementSensorClient_ReceiveFSMContext* context;
 
 protected:
+    /// References to parent FSMs
+    urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
+    urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
 
-	/// References to parent FSMs
-	urn_jaus_jss_core_EventsClient::EventsClient_ReceiveFSM* pEventsClient_ReceiveFSM;
-	urn_jaus_jss_core_Transport::Transport_ReceiveFSM* pTransport_ReceiveFSM;
+    std::shared_ptr<iop::Component> cmp;
+    rclcpp::Logger logger;
 
-	std::shared_ptr<iop::Component> cmp;
-	rclcpp::Logger logger;
-
-	rclcpp::Publisher<fkie_iop_msgs::msg::Measurement>::SharedPtr p_pub_meas;
-	double p_hz;
-	QueryMeasurement p_query_measurement;
+    rclcpp::Publisher<fkie_iop_msgs::msg::Measurement>::SharedPtr p_pub_meas;
+    double p_hz;
+    QueryMeasurement p_query_measurement;
 };
 
 }

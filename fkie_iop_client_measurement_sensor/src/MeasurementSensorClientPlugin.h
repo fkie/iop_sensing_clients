@@ -20,32 +20,28 @@ along with this program; or you can read the full license at
 
 /** \author Alexander Tiderko */
 
-
 #ifndef MEASUREMENTSENSORCLIENTPLUGIN_H
 #define MEASUREMENTSENSORCLIENTPLUGIN_H
 
-#include "urn_jaus_jss_iop_MeasurementSensorClient/MeasurementSensorClientService.h"
 #include "urn_jaus_jss_core_EventsClient/EventsClientService.h"
 #include "urn_jaus_jss_core_Transport/TransportService.h"
+#include "urn_jaus_jss_iop_MeasurementSensorClient/MeasurementSensorClientService.h"
 
 #include <fkie_iop_component/iop_plugin_interface.h>
 
-namespace iop
-{
+namespace iop {
 
-class DllExport MeasurementSensorClientPlugin : public PluginInterface
-{
+class DllExport MeasurementSensorClientPlugin : public PluginInterface {
 public:
-	MeasurementSensorClientPlugin();
+    MeasurementSensorClientPlugin();
 
-	JTS::Service* get_service();
-	void create_service(JTS::JausRouter* jaus_router);
+    JTS::Service* get_service();
+    void create_service(JTS::JausRouter* jaus_router);
 
 protected:
-	urn_jaus_jss_iop_MeasurementSensorClient::MeasurementSensorClientService *p_my_service;
-	urn_jaus_jss_core_EventsClient::EventsClientService *p_base_service;
-	urn_jaus_jss_core_Transport::TransportService *p_transport_service;
-
+    urn_jaus_jss_iop_MeasurementSensorClient::MeasurementSensorClientService* p_my_service;
+    urn_jaus_jss_core_EventsClient::EventsClientService* p_base_service;
+    urn_jaus_jss_core_Transport::TransportService* p_transport_service;
 };
 
 }
