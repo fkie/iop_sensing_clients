@@ -72,22 +72,18 @@ void PathReporterClient_ReceiveFSM::setupNotifications()
 void PathReporterClient_ReceiveFSM::setupIopConfiguration()
 {
     iop::Config cfg(cmp, "PathReporterClient");
-    cfg.declare_param<std::string>("tf_frame_world", p_tf_frame_world, true,
+    cfg.param<std::string>("tf_frame_world", p_tf_frame_world, p_tf_frame_world, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
         "TF frame id used in ROS for global coordinates.",
         "Default: 'world'");
-    cfg.declare_param<std::string>("tf_frame_odom", p_tf_frame_odom, true,
+    cfg.param<std::string>("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
         "TF frame id of the odometry.",
         "Default: 'odom'");
-    cfg.declare_param<double>("hz", p_hz, true,
+    cfg.param<double>("hz", p_hz, p_hz, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE,
         "Sets how often the reports are requested. If use_queries is True hz must be greather then 0. In this case each time a Query message is sent to get a report. If use_queries is False an event is created to get Reports. In this case 0 disables the rate and an event of type on_change will be created.",
         "Default: 1.0");
-
-    cfg.param("tf_frame_world", p_tf_frame_world, p_tf_frame_world);
-    cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
-    cfg.param("hz", p_hz, p_hz, false);
     p_pub_planned_local_path = cfg.create_publisher<nav_msgs::msg::Path>("planned_local_path", 10);
     p_pub_historical_local_path = cfg.create_publisher<nav_msgs::msg::Path>("historical_local_path", 10);
     p_pub_planned_global_path = cfg.create_publisher<nav_msgs::msg::Path>("planned_global_path", 10);

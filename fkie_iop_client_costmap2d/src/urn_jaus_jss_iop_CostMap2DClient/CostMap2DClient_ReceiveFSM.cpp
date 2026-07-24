@@ -73,26 +73,22 @@ void CostMap2DClient_ReceiveFSM::setupNotifications()
 void CostMap2DClient_ReceiveFSM::setupIopConfiguration()
 {
     iop::Config cfg(cmp, "CostMap2DClient");
-    cfg.declare_param<std::string>("tf_frame_odom", p_tf_frame_odom, true,
+    cfg.param<std::string>("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
         "Defines the odometry frame id.",
         "Default: 'odom'");
-    cfg.declare_param<std::string>("tf_frame_costmap", p_tf_frame_costmap, true,
+    cfg.param<std::string>("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_STRING,
         "Defines the map frame id.",
         "Default: 'costmap'");
-    cfg.declare_param<bool>("send_inverse_trafo", p_send_inverse_trafo, true,
+    cfg.param<bool>("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_BOOL,
         "Sets the transform direction while publish TF frame. True: tf_frame_odom -> tf_frame_costmap.",
         "Default: false");
-    cfg.declare_param<double>("hz", p_hz, true,
+    cfg.param<double>("hz", p_hz, p_hz, true,
         rcl_interfaces::msg::ParameterType::PARAMETER_DOUBLE,
         "Sets how often the reports are requested. If use_queries is True hz must be greather then 0. In this case each time a Query message is sent to get a report. If use_queries is False an event is created to get Reports. In this case 0 disables the rate and an event of type on_change will be created.",
         "Default: 0.01");
-    cfg.param("tf_frame_odom", p_tf_frame_odom, p_tf_frame_odom);
-    cfg.param("tf_frame_costmap", p_tf_frame_costmap, p_tf_frame_costmap);
-    cfg.param("send_inverse_trafo", p_send_inverse_trafo, p_send_inverse_trafo, true);
-    cfg.param("hz", p_hz, p_hz, false);
     p_pub_costmap = cfg.create_publisher<nav_msgs::msg::OccupancyGrid>("costmap", 1);
     // initialize the control layer, which handles the access control staff
     this->set_rate(p_hz);
